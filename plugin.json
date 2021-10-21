@@ -1,0 +1,11 @@
+﻿{
+  "Group": "Payment methods",
+  "FriendlyName": "Credit Card 3D",
+  "SystemName": "Payments.Iyzico",
+  "Version": "1.00",
+  "SupportedVersions": [ "4.40" ],
+  "Author": "Eyup Gevenim",
+  "DisplayOrder": 1,
+  "FileName": "Nop.Plugin.Payments.Iyzico.dll",
+  "Description": "This plugin enables credit card 3D payment (stored into database)"
+}
