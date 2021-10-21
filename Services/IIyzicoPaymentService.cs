@@ -1,11 +1,10 @@
 ﻿namespace Nop.Plugin.Payments.Iyzico.Services
 {
-    using System.Collections.Generic;
-    using System.Threading.Tasks;
     using Microsoft.AspNetCore.Http;
     using Nop.Core.Domain.Orders;
     using Nop.Plugin.Payments.Iyzico.Models;
     using Nop.Services.Payments;
+    using System.Collections.Generic;
 
     public interface IIyzicoPaymentService
     {
@@ -16,47 +15,45 @@
         /// </summary>
         /// <param name="cart">Shoping cart</param>
         /// <returns>Additional handling fee</returns>
-        Task<decimal> GetAdditionalHandlingFeeAsync(IList<ShoppingCartItem> cart);
+        decimal GetAdditionalHandlingFee(IList<ShoppingCartItem> cart);
 
         /// <summary>
         /// Validate payment form
         /// </summary>
         /// <param name="form">The parsed form values</param>
         /// <returns>List of validating errors</returns>
-        Task<PaymentInfoModel> ValidatePaymentFormAsync(IFormCollection form);
+        PaymentInfoModel ValidatePaymentForm(IFormCollection form);
 
         /// <summary>
         /// Get payment information
         /// </summary>
         /// <param name="form">The parsed form values</param>
-        /// <returns>Payment info holder</returns>
-        Task<ProcessPaymentRequest> GetPaymentInfoAsync(IFormCollection form);
+        /// <returns>ProcessPaymentRequest</returns>
+        ProcessPaymentRequest GetPaymentInfo(IFormCollection form);
 
         /// <summary>
         /// Process a payment
         /// </summary>
         /// <param name="processPaymentRequest">Payment info required for an order processing</param>
         /// <returns>
-        /// A task that represents the asynchronous operation
-        /// The task result contains the process payment result
+        /// ProcessPaymentResult
         /// </returns>
-        Task<ProcessPaymentResult> ProcessPaymentAsync(ProcessPaymentRequest processPaymentRequest);
+        ProcessPaymentResult ProcessPayment(ProcessPaymentRequest processPaymentRequest);
 
         /// <summary>
         /// Refunds a payment
         /// </summary>
         /// <param name="refundPaymentRequest">Request</param>
         /// <returns>
-        /// A task that represents the asynchronous operation
-        /// The task result contains the result
+        /// RefundPaymentResult
         /// </returns>
-        Task<RefundPaymentResult> RefundAsync(RefundPaymentRequest refundPaymentRequest);
+        RefundPaymentResult Refund(RefundPaymentRequest refundPaymentRequest);
 
         /// <summary>
         /// Check whether the plugin is configured
         /// </summary>
         /// <returns>Result</returns>
-        Task<bool> IsConfiguredAsync();
+        bool IsConfigured();
 
         /// <summary>
         /// Process a payment
@@ -64,20 +61,18 @@
         /// </summary>
         /// <param name="processPaymentRequest">Payment info required for an order processing</param>
         /// <returns>
-        /// A task that represents the asynchronous operation
-        /// The task result contains the process payment result
+        /// ProcessPaymentResult
         /// </returns>
-        Task<ProcessPaymentResult> ProcessPaymentThreedsInitializeAsync(ProcessPaymentRequest processPaymentRequest);
+        ProcessPaymentResult ProcessPaymentThreedsInitialize(ProcessPaymentRequest processPaymentRequest);
 
         /// <summary>
         /// Get Installments
         /// </summary>
         /// <param name="binNumber">Bank Identification Number</param>
         /// <returns>
-        /// A task that represents the asynchronous operation
-        /// The task result contains the result
+        /// IList<Installment> 
         /// </returns>
-        Task<IList<Installment>> GetInstallmentAsync(string binNumber);
+        IList<Installment> GetInstallment(string binNumber);
 
         /// <summary>
         /// Set iyzico checkout cookie

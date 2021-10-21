@@ -35,21 +35,5 @@
         /// </summary>
         public DateTime CreatedOnUtc { get; set; }
 
-        /**
-        /// <summary>
-        /// Gets or sets an payment status identifier (initialize, callback_post, confirmed, failed, voided)
-        /// </summary>
-        public int PaymentStatusId { get; set; }
-
-        /// <summary>
-        /// Gets or sets the payment status (initialize, callback_post, confirmed, failed, voided)
-        /// </summary>
-        public IyzicoPaymentStatus PaymentStatus
-        {
-            get => (IyzicoPaymentStatus)PaymentStatusId;
-            set => PaymentStatusId = (int)value;
-        }
-        */
-
     }
 }

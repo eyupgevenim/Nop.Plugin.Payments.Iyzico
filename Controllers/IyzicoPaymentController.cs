@@ -1,9 +1,5 @@
 ﻿namespace Nop.Plugin.Payments.Iyzico.Controllers
 {
-    using System;
-    using System.Collections.Generic;
-    using System.Linq;
-    using System.Threading.Tasks;
     using Microsoft.AspNetCore.Http;
     using Microsoft.AspNetCore.Mvc;
     using Nop.Core;
@@ -21,6 +17,9 @@
     using Nop.Services.Orders;
     using Nop.Services.Payments;
     using Nop.Web.Framework.Controllers;
+    using System;
+    using System.Collections.Generic;
+    using System.Linq;
 
     public class IyzicoPaymentController : BasePluginController
     {
@@ -80,17 +79,17 @@
         /// Enter Payment Info
         /// </summary>
         /// <param name="form">IFormCollection</param>
-        /// <returns>A task that represents the asynchronous operation</returns>
+        /// <returns>IActionResult</returns>
         [HttpPost]
         [FormValueRequired("nextstep")]
         [IgnoreAntiforgeryToken]
-        public virtual async Task<IActionResult> PaymentInfo(IFormCollection form)
+        public virtual IActionResult PaymentInfo(IFormCollection form)
         {
             //validation
             if (_orderSettings.CheckoutDisabled)
                 return RedirectToRoute("ShoppingCart");
 
-            var cart = await _shoppingCartService.GetShoppingCartAsync(await _workContext.GetCurrentCustomerAsync(), ShoppingCartType.ShoppingCart, (await _storeContext.GetCurrentStoreAsync()).Id);
+            var cart = _shoppingCartService.GetShoppingCart(_workContext.CurrentCustomer, ShoppingCartType.ShoppingCart, _storeContext.CurrentStore.Id);
 
             if (!cart.Any())
                 return RedirectToRoute("ShoppingCart");
@@ -98,45 +97,45 @@
             if (_orderSettings.OnePageCheckoutEnabled)
                 return RedirectToRoute("CheckoutOnePage");
 
-            if (await _customerService.IsGuestAsync(await _workContext.GetCurrentCustomerAsync()) && !_orderSettings.AnonymousCheckoutAllowed)
+            if (_customerService.IsGuest(_workContext.CurrentCustomer) && !_orderSettings.AnonymousCheckoutAllowed)
                 return Challenge();
 
             //Check whether payment workflow is required
-            var isPaymentWorkflowRequired = await _orderProcessingService.IsPaymentWorkflowRequiredAsync(cart);
+            var isPaymentWorkflowRequired = _orderProcessingService.IsPaymentWorkflowRequired(cart);
             if (!isPaymentWorkflowRequired)
             {
                 return RedirectToRoute("CheckoutConfirm");
             }
 
             //load payment method
-            var paymentMethodSystemName = await _genericAttributeService.GetAttributeAsync<string>(await _workContext.GetCurrentCustomerAsync(),
-                NopCustomerDefaults.SelectedPaymentMethodAttribute, (await _storeContext.GetCurrentStoreAsync()).Id);
-            var paymentMethod = await _paymentPluginManager
-                .LoadPluginBySystemNameAsync(paymentMethodSystemName, await _workContext.GetCurrentCustomerAsync(), (await _storeContext.GetCurrentStoreAsync()).Id);
+            var paymentMethodSystemName = _genericAttributeService.GetAttribute<string>(_workContext.CurrentCustomer,
+                NopCustomerDefaults.SelectedPaymentMethodAttribute, _storeContext.CurrentStore.Id);
+            var paymentMethod = _paymentPluginManager
+                .LoadPluginBySystemName(paymentMethodSystemName, _workContext.CurrentCustomer,  _storeContext.CurrentStore.Id);
             if (paymentMethod == null)
                 return RedirectToRoute("CheckoutPaymentMethod");
 
-            var paymentInfoModel = await _iyzicoPaymentService.ValidatePaymentFormAsync(form);
+            var paymentInfoModel = _iyzicoPaymentService.ValidatePaymentForm(form);
             foreach (var warning in paymentInfoModel.Warnings)
                 ModelState.AddModelError("", warning);
+
             if (ModelState.IsValid)
             {
                 //get payment info
-                var processPaymentRequest = await _iyzicoPaymentService.GetPaymentInfoAsync(form);
+                var processPaymentRequest = _iyzicoPaymentService.GetPaymentInfo(form);
                 //set previous order GUID (if exists)
                 _paymentService.GenerateOrderGuid(processPaymentRequest);
-                processPaymentRequest.StoreId = (await _storeContext.GetCurrentStoreAsync()).Id;
-                processPaymentRequest.CustomerId = (await _workContext.GetCurrentCustomerAsync()).Id;
+                processPaymentRequest.StoreId = _storeContext.CurrentStore.Id;
+                processPaymentRequest.CustomerId = _workContext.CurrentCustomer.Id;
                 processPaymentRequest.PaymentMethodSystemName = paymentMethodSystemName;
 
                 try
                 {
-                    var iyzicoProcessPaymentResult = (IyzicoProcessPaymentResult)await _iyzicoPaymentService.ProcessPaymentThreedsInitializeAsync(processPaymentRequest);
+                    var iyzicoProcessPaymentResult = (IyzicoProcessPaymentResult)_iyzicoPaymentService.ProcessPaymentThreedsInitialize(processPaymentRequest);
                     if (iyzicoProcessPaymentResult.Success)
                     {
                         //session save
                         _iyzicoPaymentService.SetCheckoutCookie("OrderPaymentInfo", processPaymentRequest);
-                        //return new ContentResult { Content = iyzicoProcessPaymentResult.HtmlContent, ContentType = "text/html; charset=utf-8",  StatusCode = (int)HttpStatusCode.OK };
                         return Content(iyzicoProcessPaymentResult.HtmlContent, "text/html; charset=utf-8");
                     }
 
@@ -145,7 +144,7 @@
                 catch (Exception ex)
                 {
                     paymentInfoModel.Warnings.Add(ex.Message);
-                    await _logger.ErrorAsync(ex.Message, ex);
+                    _logger.Error(ex.Message, ex);
                 }
             }
 
@@ -177,16 +176,16 @@
         /// Order confirm action
         /// </summary>
         /// <param name="threedsCallbackResource">ThreedsCallbackResource</param>
-        /// <returns>A task that represents the asynchronous operation</returns>
+        /// <returns>IActionResult</returns>
         [HttpPost]
         [FormValueRequired("nextstep")]
-        public virtual async Task<IActionResult> OrderConfirm(ThreedsCallbackResource threedsCallbackResource)
+        public virtual IActionResult OrderConfirm(ThreedsCallbackResource threedsCallbackResource)
         {
             //validation
             if (_orderSettings.CheckoutDisabled)
                 return RedirectToRoute("ShoppingCart");
 
-            var cart = await _shoppingCartService.GetShoppingCartAsync(await _workContext.GetCurrentCustomerAsync(), ShoppingCartType.ShoppingCart, (await _storeContext.GetCurrentStoreAsync()).Id);
+            var cart = _shoppingCartService.GetShoppingCart(_workContext.CurrentCustomer, ShoppingCartType.ShoppingCart, _storeContext.CurrentStore.Id);
 
             if (!cart.Any())
                 return RedirectToRoute("ShoppingCart");
@@ -194,7 +193,7 @@
             if (_orderSettings.OnePageCheckoutEnabled)
                 return RedirectToRoute("CheckoutOnePage");
 
-            if (await _customerService.IsGuestAsync(await _workContext.GetCurrentCustomerAsync()) && !_orderSettings.AnonymousCheckoutAllowed)
+            if (_customerService.IsGuest(_workContext.CurrentCustomer) && !_orderSettings.AnonymousCheckoutAllowed)
                 return Challenge();
 
             //model
@@ -202,15 +201,15 @@
             try
             {
                 //prevent 2 orders being placed within an X seconds time frame
-                if (!await IsMinimumOrderPlacementIntervalValidAsync(await _workContext.GetCurrentCustomerAsync()))
-                    throw new Exception(await _localizationService.GetResourceAsync("Checkout.MinOrderPlacementInterval"));
+                if (! IsMinimumOrderPlacementIntervalValid(_workContext.CurrentCustomer))
+                    throw new Exception(_localizationService.GetResource("Checkout.MinOrderPlacementInterval"));
 
                 //place order
                 var processPaymentRequest = _iyzicoPaymentService.GetCheckoutCookie<ProcessPaymentRequest>("OrderPaymentInfo");
                 if (processPaymentRequest == null)
                 {
                     //Check whether payment workflow is required
-                    if (await _orderProcessingService.IsPaymentWorkflowRequiredAsync(cart))
+                    if (_orderProcessingService.IsPaymentWorkflowRequired(cart))
                         return RedirectToRoute("CheckoutPaymentInfo");
 
                     processPaymentRequest = new ProcessPaymentRequest();
@@ -225,14 +224,14 @@
                 }
 
                 _paymentService.GenerateOrderGuid(processPaymentRequest);
-                processPaymentRequest.StoreId = (await _storeContext.GetCurrentStoreAsync()).Id;
-                processPaymentRequest.CustomerId = (await _workContext.GetCurrentCustomerAsync()).Id;
-                processPaymentRequest.PaymentMethodSystemName = await _genericAttributeService.GetAttributeAsync<string>(await _workContext.GetCurrentCustomerAsync(),
-                    NopCustomerDefaults.SelectedPaymentMethodAttribute, (await _storeContext.GetCurrentStoreAsync()).Id);
+                processPaymentRequest.StoreId = _storeContext.CurrentStore.Id;
+                processPaymentRequest.CustomerId = _workContext.CurrentCustomer.Id;
+                processPaymentRequest.PaymentMethodSystemName = _genericAttributeService.GetAttribute<string>(_workContext.CurrentCustomer,
+                    NopCustomerDefaults.SelectedPaymentMethodAttribute, _storeContext.CurrentStore.Id);
                 
                 HttpContext.Session.Set("OrderPaymentInfo", processPaymentRequest);
                 HttpContext.Session.Set(nameof(ThreedsCallbackResource), threedsCallbackResource);
-                var placeOrderResult = await _orderProcessingService.PlaceOrderAsync(processPaymentRequest);
+                var placeOrderResult = _orderProcessingService.PlaceOrder(processPaymentRequest);
                 if (placeOrderResult.Success)
                 {
                     HttpContext.Session.Set<ProcessPaymentRequest>("OrderPaymentInfo", null);
@@ -241,12 +240,12 @@
                     {
                         Order = placeOrderResult.PlacedOrder
                     };
-                    await _paymentService.PostProcessPaymentAsync(postProcessPaymentRequest);
+                    _paymentService.PostProcessPayment(postProcessPaymentRequest);
 
                     if (_webHelper.IsRequestBeingRedirected || _webHelper.IsPostBeingDone)
                     {
                         //redirection or POST has been done in PostProcessPayment
-                        return Content(await _localizationService.GetResourceAsync("Checkout.RedirectMessage"));
+                        return Content(_localizationService.GetResource("Checkout.RedirectMessage"));
                     }
 
                     return RedirectToRoute("CheckoutCompleted", new { orderId = placeOrderResult.PlacedOrder.Id });
@@ -257,7 +256,7 @@
             }
             catch (Exception exc)
             {
-                await _logger.WarningAsync(exc.Message, exc);
+                _logger.Warning(exc.Message, exc);
                 model.Warnings.Add(exc.Message);
             }
 
@@ -269,21 +268,21 @@
         /// Get iyzico installment by BIN number
         /// </summary>
         /// <param name="binNumber">BinNumber:Bank Identification Number</param>
-        /// <returns>A task that represents the asynchronous operation</returns>
+        /// <returns>IActionResult</returns>
         [HttpPost]
         [IgnoreAntiforgeryToken]
-        public virtual async Task<IActionResult> GetInstallment(string binNumber)
+        public virtual IActionResult GetInstallment(string binNumber)
         {
             if (string.IsNullOrEmpty(binNumber))
                 return Json(new List<Installment>());
 
             try
             {
-                return Json(await _iyzicoPaymentService.GetInstallmentAsync(binNumber));
+                return Json(_iyzicoPaymentService.GetInstallment(binNumber));
             }
             catch (Exception ex)
             {
-                await _logger.ErrorAsync(ex.Message, ex);
+                _logger.Error(ex.Message, ex);
             }
 
             return Json(new List<Installment>());
@@ -307,15 +306,13 @@
             return warnings;
         }
 
-        protected virtual async Task<bool> IsMinimumOrderPlacementIntervalValidAsync(Customer customer)
+        protected virtual bool IsMinimumOrderPlacementIntervalValid(Customer customer)
         {
             //prevent 2 orders being placed within an X seconds time frame
             if (_orderSettings.MinimumOrderPlacementInterval == 0)
                 return true;
 
-            var lastOrder = (await _orderService.SearchOrdersAsync(storeId: (await _storeContext.GetCurrentStoreAsync()).Id,
-                    customerId: (await _workContext.GetCurrentCustomerAsync()).Id, pageSize: 1)
-                ).FirstOrDefault();
+            var lastOrder = _orderService.SearchOrders(storeId: _storeContext.CurrentStore.Id, customerId: _workContext.CurrentCustomer.Id, pageSize: 1).FirstOrDefault();
             if (lastOrder == null)
                 return true;
 

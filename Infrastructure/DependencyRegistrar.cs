@@ -1,6 +1,6 @@
 ﻿namespace Nop.Plugin.Payments.Iyzico.Infrastructure
 {
-    using Microsoft.Extensions.DependencyInjection;
+    using Autofac;
     using Nop.Core.Configuration;
     using Nop.Core.Infrastructure;
     using Nop.Core.Infrastructure.DependencyManagement;
@@ -14,13 +14,12 @@
         /// <summary>
         /// Register services and interfaces
         /// </summary>
-        /// <param name="services">Collection of service descriptors</param>
+        /// <param name="builder">Container builder</param>
         /// <param name="typeFinder">Type finder</param>
-        /// <param name="appSettings">App settings</param>
-        public void Register(IServiceCollection services, ITypeFinder typeFinder, AppSettings appSettings)
+        /// <param name="config">Config</param>
+        public virtual void Register(ContainerBuilder builder, ITypeFinder typeFinder, NopConfig config)
         {
-            //register custom services
-            services.AddScoped<IIyzicoPaymentService, IyzicoPaymentService>();
+            builder.RegisterType<IyzicoPaymentService>().As<IIyzicoPaymentService>().InstancePerLifetimeScope();
         }
 
         /// <summary>

@@ -1,10 +1,9 @@
 ﻿namespace Nop.Plugin.Payments.Iyzico.Models
 {
-    using System;
     using Nop.Web.Framework.Models;
     using Nop.Web.Framework.Mvc.ModelBinding;
 
-    public record ConfigurationModel : BaseNopModel, ISettingsModel, IEquatable<ConfigurationModel>
+    public class ConfigurationModel : BaseNopModel
     {
         public int ActiveStoreScopeConfiguration { get; set; }
 

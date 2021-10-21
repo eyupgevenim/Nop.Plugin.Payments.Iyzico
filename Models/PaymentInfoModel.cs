@@ -6,7 +6,7 @@
     using Nop.Web.Framework.Models;
     using Nop.Web.Framework.Mvc.ModelBinding;
 
-    public record PaymentInfoModel : BaseNopModel, IEquatable<PaymentInfoModel>
+    public class PaymentInfoModel : BaseNopModel
     {
         public PaymentInfoModel()
         {
@@ -42,7 +42,7 @@
 
     }
 
-    public record Installment
+    public class Installment
     {
         public string DisplayName { get; set; }
 

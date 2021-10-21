@@ -1,6 +1,5 @@
 ﻿namespace Nop.Plugin.Payments.Iyzico.Controllers
 {
-    using System.Threading.Tasks;
     using Microsoft.AspNetCore.Mvc;
     using Nop.Plugin.Payments.Iyzico.Models;
     using Nop.Plugin.Payments.Iyzico.Validators;
@@ -11,6 +10,7 @@
     using Nop.Web.Framework;
     using Nop.Web.Framework.Controllers;
     using Nop.Web.Framework.Mvc.Filters;
+    using System.Threading.Tasks;
 
     [Area(AreaNames.Admin)]
     [AuthorizeAdmin(false)]
@@ -44,7 +44,7 @@
         [AutoValidateAntiforgeryToken]
         public async Task<IActionResult> Configure()
         {
-            if (!await _permissionService.AuthorizeAsync(StandardPermissionProvider.ManageShippingSettings))
+            if (!_permissionService.Authorize(StandardPermissionProvider.ManageShippingSettings))
                 return AccessDeniedView();
 
             var model = new ConfigurationModel()
@@ -65,7 +65,7 @@
         [FormValueRequired("save")]
         public async Task<IActionResult> Configure(ConfigurationModel model)
         {
-            if (!await _permissionService.AuthorizeAsync(StandardPermissionProvider.ManagePaymentMethods))
+            if (!_permissionService.Authorize(StandardPermissionProvider.ManagePaymentMethods))
                 return AccessDeniedView();
 
             if (!ModelState.IsValid)
@@ -83,8 +83,8 @@
             _iyzicoSettings.CheckoutCookieExpires = model.CheckoutCookieExpires;
             _iyzicoSettings.Enable3DSecure = model.Enable3DSecure;
 
-            await _settingService.SaveSettingAsync(_iyzicoSettings);
-            _notificationService.SuccessNotification(await _localizationService.GetResourceAsync("Admin.Plugins.Saved"));
+            _settingService.SaveSetting(_iyzicoSettings);
+            _notificationService.SuccessNotification(_localizationService.GetResource("Admin.Plugins.Saved"));
             return View("~/Plugins/Payments.Iyzico/Views/Configure/Configure.cshtml", model);
         }
         

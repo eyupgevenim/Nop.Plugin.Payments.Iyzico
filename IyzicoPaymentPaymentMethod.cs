@@ -1,8 +1,5 @@
 ﻿namespace Nop.Plugin.Payments.Iyzico
 {
-    using System.Collections.Generic;
-    using System.Linq;
-    using System.Threading.Tasks;
     using Microsoft.AspNetCore.Http;
     using Microsoft.AspNetCore.Mvc;
     using Microsoft.AspNetCore.Mvc.Infrastructure;
@@ -15,6 +12,8 @@
     using Nop.Services.Localization;
     using Nop.Services.Payments;
     using Nop.Services.Plugins;
+    using System.Collections.Generic;
+    using System.Linq;
 
     public class IyzicoPaymentPaymentMethod : BasePlugin, IPaymentMethod
     {
@@ -81,6 +80,11 @@
         /// </summary>
         public bool SkipPaymentInfo => false;
 
+        /// <summary>
+        /// Gets a payment method description that will be displayed on checkout pages in the public store
+        /// </summary>
+        public string PaymentMethodDescription => _localizationService.GetResource("Plugins.Payments.Iyzico.Admin.Fields.PaymentMethodDescription");
+
         #endregion
 
         #region Methods
@@ -89,12 +93,11 @@
         /// </summary>
         /// <param name="cancelPaymentRequest">Request</param>
         /// <returns>
-        /// A task that represents the asynchronous operation
-        /// The task result contains the result
+        /// CancelRecurringPaymentResult
         /// </returns>
-        public Task<CancelRecurringPaymentResult> CancelRecurringPaymentAsync(CancelRecurringPaymentRequest cancelPaymentRequest)
+        public CancelRecurringPaymentResult CancelRecurringPayment(CancelRecurringPaymentRequest cancelPaymentRequest)
         {
-            return Task.FromResult(new CancelRecurringPaymentResult { Errors = new[] { "Recurring payment not supported" } });
+            return new CancelRecurringPaymentResult { Errors = new[] { "Recurring payment not supported" } };
         }
 
         /// <summary>
@@ -102,12 +105,11 @@
         /// </summary>
         /// <param name="order">Order</param>
         /// <returns>
-        /// A task that represents the asynchronous operation
-        /// The task result contains the result
+        /// bool
         /// </returns>
-        public Task<bool> CanRePostProcessPaymentAsync(Order order)
+        public bool CanRePostProcessPayment(Order order)
         {
-            return Task.FromResult(false);
+            return false;
         }
 
         /// <summary>
@@ -115,12 +117,11 @@
         /// </summary>
         /// <param name="capturePaymentRequest">Capture payment request</param>
         /// <returns>
-        /// A task that represents the asynchronous operation
-        /// The task result contains the capture payment result
+        /// CapturePaymentResult
         /// </returns>
-        public Task<CapturePaymentResult> CaptureAsync(CapturePaymentRequest capturePaymentRequest)
+        public CapturePaymentResult Capture(CapturePaymentRequest capturePaymentRequest)
         {
-            return Task.FromResult(new CapturePaymentResult { Errors = new[] { "Capture method not supported" } });
+            return new CapturePaymentResult { Errors = new[] { "Capture method not supported" } };
         }
 
         /// <summary>
@@ -128,9 +129,9 @@
         /// </summary>
         /// <param name="cart">Shoping cart</param>
         /// <returns>Additional handling fee</returns>
-        public async Task<decimal> GetAdditionalHandlingFeeAsync(IList<ShoppingCartItem> cart)
+        public  decimal GetAdditionalHandlingFee(IList<ShoppingCartItem> cart)
         {
-            return await _iyzicoPaymentService.GetAdditionalHandlingFeeAsync(cart);
+            return _iyzicoPaymentService.GetAdditionalHandlingFee(cart);
         }
 
         /// <summary>
@@ -138,18 +139,9 @@
         /// </summary>
         /// <param name="form">The parsed form values</param>
         /// <returns>Payment info holder</returns>
-        public async Task<ProcessPaymentRequest> GetPaymentInfoAsync(IFormCollection form)
+        public  ProcessPaymentRequest GetPaymentInfo(IFormCollection form)
         {
-            return await _iyzicoPaymentService.GetPaymentInfoAsync(form);
-        }
-
-        /// <summary>
-        /// Gets a payment method description that will be displayed on checkout pages in the public store
-        /// </summary>
-        /// <returns>A task that represents the asynchronous operation</returns>
-        public async Task<string> GetPaymentMethodDescriptionAsync()
-        {
-            return await _localizationService.GetResourceAsync("Plugins.Payments.Iyzico.Admin.Fields.PaymentMethodDescription");
+            return _iyzicoPaymentService.GetPaymentInfo(form);
         }
 
         /// <summary>
@@ -165,12 +157,11 @@
         /// </summary>
         /// <param name="cart">Shoping cart</param>
         /// <returns>
-        /// A task that represents the asynchronous operation
-        /// The task result contains the rue - hide; false - display.
+        /// bool
         /// </returns>
-        public async Task<bool> HidePaymentMethodAsync(IList<ShoppingCartItem> cart)
+        public bool HidePaymentMethod(IList<ShoppingCartItem> cart)
         {
-            var notConfigured = await _iyzicoPaymentService.IsConfiguredAsync();
+            var notConfigured = _iyzicoPaymentService.IsConfigured();
             return !notConfigured;
         }
 
@@ -178,23 +169,18 @@
         /// Post process payment (used by payment gateways that require redirecting to a third-party URL)
         /// </summary>
         /// <param name="postProcessPaymentRequest">Payment info required for an order processing</param>
-        /// <returns>A task that represents the asynchronous operation</returns>
-        public Task PostProcessPaymentAsync(PostProcessPaymentRequest postProcessPaymentRequest)
-        {
-            return Task.CompletedTask;
-        }
+        public void PostProcessPayment(PostProcessPaymentRequest postProcessPaymentRequest)  { }
 
         /// <summary>
         /// Process a payment
         /// </summary>
         /// <param name="processPaymentRequest">Payment info required for an order processing</param>
         /// <returns>
-        /// A task that represents the asynchronous operation
-        /// The task result contains the process payment result
+        /// ProcessPaymentResult
         /// </returns>
-        public async Task<ProcessPaymentResult> ProcessPaymentAsync(ProcessPaymentRequest processPaymentRequest)
+        public ProcessPaymentResult ProcessPayment(ProcessPaymentRequest processPaymentRequest)
         {
-            return await _iyzicoPaymentService.ProcessPaymentAsync(processPaymentRequest);
+            return _iyzicoPaymentService.ProcessPayment(processPaymentRequest);
         }
 
         /// <summary>
@@ -202,12 +188,11 @@
         /// </summary>
         /// <param name="processPaymentRequest">Payment info required for an order processing</param>
         /// <returns>
-        /// A task that represents the asynchronous operation
-        /// The task result contains the process payment result
+        /// ProcessPaymentResult
         /// </returns>
-        public Task<ProcessPaymentResult> ProcessRecurringPaymentAsync(ProcessPaymentRequest processPaymentRequest)
+        public ProcessPaymentResult ProcessRecurringPayment(ProcessPaymentRequest processPaymentRequest)
         {
-            return Task.FromResult(new ProcessPaymentResult { Errors = new[] { "Recurring payment not supported" } });
+            return new ProcessPaymentResult { Errors = new[] { "Recurring payment not supported" } };
         }
 
         /// <summary>
@@ -215,12 +200,11 @@
         /// </summary>
         /// <param name="refundPaymentRequest">Request</param>
         /// <returns>
-        /// A task that represents the asynchronous operation
-        /// The task result contains the result
+        /// RefundPaymentResult
         /// </returns>
-        public Task<RefundPaymentResult> RefundAsync(RefundPaymentRequest refundPaymentRequest)
+        public RefundPaymentResult Refund(RefundPaymentRequest refundPaymentRequest)
         {
-            return _iyzicoPaymentService.RefundAsync(refundPaymentRequest);
+            return _iyzicoPaymentService.Refund(refundPaymentRequest);
         }
 
         /// <summary>
@@ -228,9 +212,9 @@
         /// </summary>
         /// <param name="form">The parsed form values</param>
         /// <returns>List of validating errors</returns>
-        public async Task<IList<string>> ValidatePaymentFormAsync(IFormCollection form)
+        public  IList<string> ValidatePaymentForm(IFormCollection form)
         {
-            var paymentInfoModel = await _iyzicoPaymentService.ValidatePaymentFormAsync(form);
+            var paymentInfoModel = _iyzicoPaymentService.ValidatePaymentForm(form);
             return paymentInfoModel.Warnings;
         }
 
@@ -239,12 +223,11 @@
         /// </summary>
         /// <param name="voidPaymentRequest">Request</param>
         /// <returns>
-        /// A task that represents the asynchronous operation
-        /// The task result contains the result
+        /// VoidPaymentResult
         /// </returns>
-        public Task<VoidPaymentResult> VoidAsync(VoidPaymentRequest voidPaymentRequest)
+        public VoidPaymentResult Void(VoidPaymentRequest voidPaymentRequest)
         {
-            return Task.FromResult(new VoidPaymentResult { Errors = new[] { "Void method not supported" } });
+            return new VoidPaymentResult { Errors = new[] { "Void method not supported" } };
         }
 
         /// <summary>
@@ -258,11 +241,10 @@
         /// <summary>
         /// Install the plugin
         /// </summary>
-        /// <returns>A task that represents the asynchronous operation</returns>
-        public override async Task InstallAsync()
+        public override  void Install()
         {
             //settings
-            await _settingService.SaveSettingAsync(new IyzicoSettings
+            _settingService.SaveSetting(new IyzicoSettings
             {
                 ApiKey = "",
                 SecretKey = "",
@@ -275,18 +257,18 @@
             if (!_paymentSettings.ActivePaymentMethodSystemNames.Contains(IyzicoDefaults.SystemName))
             {
                 _paymentSettings.ActivePaymentMethodSystemNames.Add(IyzicoDefaults.SystemName);
-                await _settingService.SaveSettingAsync(_paymentSettings);
+                _settingService.SaveSetting(_paymentSettings);
             }
 
             if (!_widgetSettings.ActiveWidgetSystemNames.Contains(IyzicoDefaults.SystemName))
             {
                 _widgetSettings.ActiveWidgetSystemNames.Add(IyzicoDefaults.SystemName);
-                await _settingService.SaveSettingAsync(_widgetSettings);
+                _settingService.SaveSetting(_widgetSettings);
             }
 
             #region locales
 
-            await _localizationService.AddLocaleResourceAsync(new Dictionary<string, string>
+            _localizationService.AddPluginLocaleResource(new Dictionary<string, string>
             {
                 ["Plugins.Payments.Iyzico.Admin.Fields.ApiKey"] = "Iyzico API Key",
                 ["Plugins.Payments.Iyzico.Admin.Fields.ApiKey.Hint"] = "Enter Iyzico API Key.",
@@ -313,13 +295,13 @@
                 ["Plugins.Payments.Iyzico.EmptyInstalment"] = "Empty Instalment"
             });
 
-            var allLanguages = await _languageService.GetAllLanguagesAsync();
+            var allLanguages = _languageService.GetAllLanguages();
 
             #region locales-on-engilish
             var enLanguage = allLanguages.FirstOrDefault(x => x.LanguageCulture == "en-US");
             if (enLanguage != null)
             {
-                await _localizationService.AddLocaleResourceAsync(new Dictionary<string, string>
+                _localizationService.AddPluginLocaleResource(new Dictionary<string, string>
                 {
                     ["Plugins.Payments.Iyzico.Installment"] = "Installment",
                     ["Plugins.Payments.Iyzico.Installments"] = "Installments",
@@ -396,7 +378,7 @@
             var trLanguage = allLanguages.FirstOrDefault(x => x.LanguageCulture == "tr-TR");
             if (trLanguage != null)
             {
-                await _localizationService.AddLocaleResourceAsync(new Dictionary<string, string>
+                _localizationService.AddPluginLocaleResource(new Dictionary<string, string>
                 {
                     ["Plugins.Payments.Iyzico.CardHolderName"] = "Kart Sahibi",
                     ["Plugins.Payments.Iyzico.CardNumber"] = "Kart Numarası",
@@ -475,34 +457,33 @@
 
             #endregion
 
-            await base.InstallAsync();
+            base.Install();
         }
 
         /// <summary>
         /// Uninstall the plugin
         /// </summary>
-        /// <returns>A task that represents the asynchronous operation</returns>
-        public override async Task UninstallAsync()
+        public override void Uninstall()
         {
             //settings
             if (_paymentSettings.ActivePaymentMethodSystemNames.Contains(IyzicoDefaults.SystemName))
             {
                 _paymentSettings.ActivePaymentMethodSystemNames.Remove(IyzicoDefaults.SystemName);
-                await _settingService.SaveSettingAsync(_paymentSettings);
+                _settingService.SaveSetting(_paymentSettings);
             }
 
             if (_widgetSettings.ActiveWidgetSystemNames.Contains(IyzicoDefaults.SystemName))
             {
                 _widgetSettings.ActiveWidgetSystemNames.Remove(IyzicoDefaults.SystemName);
-                await _settingService.SaveSettingAsync(_widgetSettings);
+                _settingService.SaveSetting(_widgetSettings);
             }
 
-            await _settingService.DeleteSettingAsync<IyzicoSettings>();
+            _settingService.DeleteSetting<IyzicoSettings>();
 
             //locales
-            await _localizationService.DeleteLocaleResourcesAsync("Plugins.Payments.Iyzico");
+            _localizationService.DeletePluginLocaleResources("Plugins.Payments.Iyzico");
 
-            await base.UninstallAsync();
+            base.Uninstall();
         }
 
         #endregion

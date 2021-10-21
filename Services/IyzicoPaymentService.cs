@@ -1,10 +1,5 @@
 ﻿namespace Nop.Plugin.Payments.Iyzico.Services
 {
-    using System;
-    using System.Collections.Generic;
-    using System.Globalization;
-    using System.Linq;
-    using System.Threading.Tasks;
     using Iyzipay.Model;
     using Iyzipay.Request;
     using Microsoft.AspNetCore.Http;
@@ -33,6 +28,10 @@
     using Nop.Services.Orders;
     using Nop.Services.Payments;
     using Nop.Services.Tax;
+    using System;
+    using System.Collections.Generic;
+    using System.Globalization;
+    using System.Linq;
 
     public class IyzicoPaymentService : IIyzicoPaymentService
     {
@@ -126,22 +125,22 @@
         /// </summary>
         /// <param name="cart">Shoping cart</param>
         /// <returns>Additional handling fee</returns>
-        public virtual async Task<decimal> GetAdditionalHandlingFeeAsync(IList<ShoppingCartItem> cart)
+        public virtual decimal GetAdditionalHandlingFee(IList<ShoppingCartItem> cart)
         {
             var processPaymentRequest = _httpContextAccessor.HttpContext?.Session?.Get<ProcessPaymentRequest>("OrderPaymentInfo");
             if (processPaymentRequest != null)
             {
-                var customer = await _workContext.GetCurrentCustomerAsync();
-                var shoppingCart = await _shoppingCartService.GetShoppingCartAsync(customer, shoppingCartType: ShoppingCartType.ShoppingCart);
+                var customer =  _workContext.CurrentCustomer;
+                var shoppingCart =  _shoppingCartService.GetShoppingCart(customer, shoppingCartType: ShoppingCartType.ShoppingCart);
 
-                var(shoppingCartTotal, _, _, _, _, _) = await _orderTotalCalculationService.GetShoppingCartTotalAsync(shoppingCart, usePaymentMethodAdditionalFee: false);
+                var shoppingCartTotal =  _orderTotalCalculationService.GetShoppingCartTotal(shoppingCart, usePaymentMethodAdditionalFee: false);
 
-                var locale = IyzicoHelper.GetLocale((await _workContext.GetWorkingLanguageAsync()).UniqueSeoCode);
+                var locale = IyzicoHelper.GetLocale(( _workContext.WorkingLanguage).UniqueSeoCode);
                 var retrieveInstallmentInfoRequest = new RetrieveInstallmentInfoRequest()
                 {
                     BinNumber = processPaymentRequest.CreditCardNumber.Substring(0, 6),
                     Locale = locale,
-                    Price = await RoundAndFormatPriceAsync(shoppingCartTotal ?? 0),
+                    Price =  RoundAndFormatPrice(shoppingCartTotal ?? 0),
                     ConversationId = string.Empty
                 };
 
@@ -150,7 +149,7 @@
 
                 if (installmentInfo.Status == $"{Status.SUCCESS}" && installmentInfo.InstallmentDetails.Any())
                 {
-                    var installmentKey = await _localizationService.GetResourceAsync(IyzicoDefaults.INSTALLMENT_KEY);
+                    var installmentKey =  _localizationService.GetResource(IyzicoDefaults.INSTALLMENT_KEY);
                     var installmentValue = (string)processPaymentRequest.CustomValues.GetValueOrDefault(installmentKey);
 
                     int.TryParse(installmentValue, out int formInstallment);
@@ -160,7 +159,7 @@
 
                     var fee = DecimalParse(installmentTotalPrice) - (shoppingCartTotal ?? 0);
 
-                    return await _paymentService.CalculateAdditionalFeeAsync(cart, fee, false);
+                    return  _paymentService.CalculateAdditionalFee(cart, fee, false);
                 }
             }
 
@@ -172,7 +171,7 @@
         /// </summary>
         /// <param name="form">The parsed form values</param>
         /// <returns>List of validating errors</returns>
-        public virtual Task<PaymentInfoModel> ValidatePaymentFormAsync(IFormCollection form)
+        public virtual PaymentInfoModel ValidatePaymentForm(IFormCollection form)
         {
             if (form == null)
                 throw new ArgumentNullException(nameof(form));
@@ -192,19 +191,20 @@
             var validationResult = validator.Validate(model);
 
             if (!validationResult.IsValid)
-                model.Warnings.Add(validationResult.ToString(". "));
+                foreach (var error in validationResult.Errors)
+                    model.Warnings.Add(error.ErrorMessage);
 
-            return Task.FromResult(model);
+            return model;
         }
 
         /// <summary>
         /// Check whether the plugin is configured
         /// </summary>
         /// <returns>Result</returns>
-        public virtual Task<bool> IsConfiguredAsync()
+        public virtual bool IsConfigured()
         {
             //client id and secret are required to request services
-            return Task.FromResult(!string.IsNullOrEmpty(_iyzicoSettings?.ApiKey) || !string.IsNullOrEmpty(_iyzicoSettings?.SecretKey));
+            return !string.IsNullOrEmpty(_iyzicoSettings?.ApiKey) || !string.IsNullOrEmpty(_iyzicoSettings?.SecretKey);
         }
 
         /// <summary>
@@ -212,7 +212,7 @@
         /// </summary>
         /// <param name="form">The parsed form values</param>
         /// <returns>Payment info holder</returns>
-        public virtual Task<ProcessPaymentRequest> GetPaymentInfoAsync(IFormCollection form)
+        public virtual ProcessPaymentRequest GetPaymentInfo(IFormCollection form)
         {
             if (form == null)
                 throw new ArgumentNullException(nameof(form));
@@ -230,11 +230,11 @@
             var installment = form[nameof(PaymentInfoModel.Installment)];
             if (!StringValues.IsNullOrEmpty(installment) && !installment.FirstOrDefault().Equals(Guid.Empty.ToString()))
             {
-                var installmentKey = _localizationService.GetResourceAsync(IyzicoDefaults.INSTALLMENT_KEY).Result;
+                var installmentKey = _localizationService.GetResource(IyzicoDefaults.INSTALLMENT_KEY);
                 paymentRequest.CustomValues.Add(installmentKey, installment.FirstOrDefault());
             }
 
-            return Task.FromResult(paymentRequest);
+            return paymentRequest;
         }
 
         /// <summary>
@@ -242,10 +242,9 @@
         /// </summary>
         /// <param name="processPaymentRequest">Payment info required for an order processing</param>
         /// <returns>
-        /// A task that represents the asynchronous operation
-        /// The task result contains the process payment result
+        /// ProcessPaymentResult
         /// </returns>
-        public virtual async Task<ProcessPaymentResult> ProcessPaymentAsync(ProcessPaymentRequest processPaymentRequest)
+        public virtual ProcessPaymentResult ProcessPayment(ProcessPaymentRequest processPaymentRequest)
         {
             var result = new ProcessPaymentResult();
 
@@ -256,28 +255,28 @@
                     var threedsCallbackResource = _httpContextAccessor.HttpContext.Session.Get<ThreedsCallbackResource>(nameof(ThreedsCallbackResource));
                     if (threedsCallbackResource != null)
                     {
-                        result = await CreateThreedsPaymentAsync(threedsCallbackResource);
+                        result =  CreateThreedsPayment(threedsCallbackResource);
                     }
                     else
                     {
-                        string errorMessage = await _localizationService.GetResourceAsync($"Plugins.Payments.Iyzico.ErrorMessage.Not3DCallbackResource");
+                        string errorMessage =  _localizationService.GetResource($"Plugins.Payments.Iyzico.ErrorMessage.Not3DCallbackResource");
                         result.AddError(errorMessage);
                     }
                 }
                 else
                 {
-                    var createPaymentRequest = await GetCreatePaymentRequestAsync(processPaymentRequest);
+                    var createPaymentRequest =  GetCreatePaymentRequest(processPaymentRequest);
                     var options = IyzicoHelper.GetIyzicoOptions(_iyzicoSettings);
                     var payment = Payment.Create(createPaymentRequest, options);
 
                     if (payment.Status == $"{Status.SUCCESS}")
                     {
-                        await AddIyzicoPaymentAsync(payment);
+                         AddIyzicoPayment(payment);
                         result.NewPaymentStatus = PaymentStatus.Pending;
                     }
                     else
                     {
-                        string errorMessage = await _localizationService.GetResourceAsync($"Plugins.Payments.Iyzico.ErrorMessage.{payment.ErrorCode}");
+                        string errorMessage =  _localizationService.GetResource($"Plugins.Payments.Iyzico.ErrorMessage.{payment.ErrorCode}");
                         result.AddError(errorMessage);
                     }
                 }
@@ -293,45 +292,44 @@
         /// <summary>
         /// Refunds a payment
         /// </summary>
-        /// <param name="refundPaymentRequest">Request</param>
+        /// <param name="refundPaymentRequest">RefundPaymentRequest</param>
         /// <returns>
-        /// A task that represents the asynchronous operation
-        /// The task result contains the result
+        /// RefundPaymentResult
         /// </returns>
-        public virtual async Task<RefundPaymentResult> RefundAsync(RefundPaymentRequest refundPaymentRequest)
+        public virtual RefundPaymentResult Refund(RefundPaymentRequest refundPaymentRequest)
         {
             var order = refundPaymentRequest.Order;
-            if (await ExistsIyzicoPaymentRefundAsync(order.Id))
+            if ( ExistsIyzicoPaymentRefund(order.Id))
                 throw new NopException("Previously returned");
 
             var customerId = order.CustomerId;
-            var iyzicoPayment = await GetIyzicoPaymentByBasketIdAsync($"{order.OrderGuid}") ?? throw new NopException("The payment was not.");
-            var iyzicoPaymentItems = await GetIyzicoPaymentItemsByIyzicoPaymentIdAsync(iyzicoPayment.Id) ?? throw new NopException("The payment was not.");
+            var iyzicoPayment =  GetIyzicoPaymentByBasketId($"{order.OrderGuid}") ?? throw new NopException("The payment was not.");
+            var iyzicoPaymentItems =  GetIyzicoPaymentItemsByIyzicoPaymentId(iyzicoPayment.Id) ?? throw new NopException("The payment was not.");
 
             if (refundPaymentRequest.AmountToRefund > iyzicoPaymentItems.Sum(x => x.Amount))
                 throw new NopException($"Invalid 'amount to refund':{refundPaymentRequest.AmountToRefund}");
 
             var ip = _webHelper.GetCurrentIpAddress();
-            var locale = IyzicoHelper.GetLocale((await _workContext.GetWorkingLanguageAsync()).UniqueSeoCode);
+            var locale = IyzicoHelper.GetLocale(( _workContext.WorkingLanguage).UniqueSeoCode);
             
             var createAmountBasedRefundRequest = new CreateAmountBasedRefundRequest
             {
                 ConversationId = $"{order.CaptureTransactionId}",
-                Price = await RoundAndFormatPriceAsync(refundPaymentRequest.AmountToRefund),
+                Price =  RoundAndFormatPrice(refundPaymentRequest.AmountToRefund),
                 PaymentId = iyzicoPayment.PaymentId,
                 Ip = ip,
                 Locale = locale,
             };
 
             var options = IyzicoHelper.GetIyzicoOptions(_iyzicoSettings);
-            Refund refund = Refund.CreateAmountBasedRefundRequest(createAmountBasedRefundRequest, options);
+            Refund refund = Iyzipay.Model.Refund.CreateAmountBasedRefundRequest(createAmountBasedRefundRequest, options);
             if (refund.Status == $"{Status.FAILURE}")
             {
-                string errorMessage = await _localizationService.GetResourceAsync($"Plugins.Payments.Iyzico.ErrorMessage.{refund.ErrorCode}") ?? refund.ErrorMessage;
+                string errorMessage =  _localizationService.GetResource($"Plugins.Payments.Iyzico.ErrorMessage.{refund.ErrorCode}") ?? refund.ErrorMessage;
                 return new RefundPaymentResult { Errors = new[] { errorMessage } };
             }
 
-            await _iyzicoPaymentRefundRepository.InsertAsync(new IyzicoPaymentRefund
+             _iyzicoPaymentRefundRepository.Insert(new IyzicoPaymentRefund
             {
                 CustomerId = customerId,
                 OrderId = order.Id,
@@ -353,14 +351,13 @@
         /// </summary>
         /// <param name="processPaymentRequest">Payment info required for an order processing</param>
         /// <returns>
-        /// A task that represents the asynchronous operation
-        /// The task result contains the process payment result
+        /// ProcessPaymentResult
         /// </returns>
-        public virtual async Task<ProcessPaymentResult> ProcessPaymentThreedsInitializeAsync(ProcessPaymentRequest processPaymentRequest)
+        public virtual ProcessPaymentResult ProcessPaymentThreedsInitialize(ProcessPaymentRequest processPaymentRequest)
         {
             var processPaymentResult = new IyzicoProcessPaymentResult();
 
-            var createPaymentRequest = await GetCreatePaymentRequestAsync(processPaymentRequest);
+            var createPaymentRequest =  GetCreatePaymentRequest(processPaymentRequest);
             var callbackConfirmRouteValue = _urlHelperFactory.GetUrlHelper(_actionContextAccessor.ActionContext).RouteUrl(IyzicoDefaults.CallbackConfirmRouteName);
             createPaymentRequest.CallbackUrl = $"{GetBaseUrl()}{callbackConfirmRouteValue}";
 
@@ -368,7 +365,7 @@
             var threedsInitialize = ThreedsInitialize.Create(createPaymentRequest, options);
             if (threedsInitialize.Status == $"{Status.FAILURE}")
             {
-                processPaymentResult.AddError(await _localizationService.GetResourceAsync($"Plugins.Payments.Iyzico.ErrorMessage.{threedsInitialize.ErrorCode}") 
+                processPaymentResult.AddError( _localizationService.GetResource($"Plugins.Payments.Iyzico.ErrorMessage.{threedsInitialize.ErrorCode}") 
                     ?? threedsInitialize.ErrorMessage);
 
                 return processPaymentResult;
@@ -383,28 +380,27 @@
         /// </summary>
         /// <param name="binNumber">Bank Identification Number</param>
         /// <returns>
-        /// A task that represents the asynchronous operation
-        /// The task result contains the result
+        ///  IList<Installment>
         /// </returns>
-        public virtual async Task<IList<Installment>> GetInstallmentAsync(string binNumber)
+        public virtual IList<Installment> GetInstallment(string binNumber)
         {
             IList<Installment> installments = new List<Installment>();
 
-            var priceIncludesTax = await _workContext.GetTaxDisplayTypeAsync() == TaxDisplayType.IncludingTax
+            var priceIncludesTax =  _workContext.TaxDisplayType == TaxDisplayType.IncludingTax
                 && !_taxSettings.ForceTaxExclusionFromOrderSubtotal;
 
-            var customer = await _workContext.GetCurrentCustomerAsync();
-            var shoppingCart = await _shoppingCartService.GetShoppingCartAsync(customer, ShoppingCartType.ShoppingCart);
+            var customer =  _workContext.CurrentCustomer;
+            var shoppingCart =  _shoppingCartService.GetShoppingCart(customer, ShoppingCartType.ShoppingCart);
 
-            var (shoppingCartTotal, _, _, _, _, _) = await _orderTotalCalculationService.GetShoppingCartTotalAsync(shoppingCart);
+            var shoppingCartTotal=  _orderTotalCalculationService.GetShoppingCartTotal(shoppingCart);
 
-            var locale = IyzicoHelper.GetLocale((await _workContext.GetWorkingLanguageAsync()).UniqueSeoCode);
+            var locale = IyzicoHelper.GetLocale(( _workContext.WorkingLanguage).UniqueSeoCode);
             var options = IyzicoHelper.GetIyzicoOptions(_iyzicoSettings);
             var retrieveInstallmentInfoRequest = new RetrieveInstallmentInfoRequest()
             {
                 BinNumber = binNumber,
                 Locale = locale,
-                Price = await RoundAndFormatPriceAsync(shoppingCartTotal.Value),
+                Price =  RoundAndFormatPrice(shoppingCartTotal.Value),
                 ConversationId = string.Empty
             };
 
@@ -415,14 +411,14 @@
                 {
                     var installment = new Installment();
 
-                    installment.DisplayName = await _localizationService.GetResourceAsync($"{IyzicoDefaults.INSTALLMENT_KEY}{installmentDetail.InstallmentNumber}");
+                    installment.DisplayName =  _localizationService.GetResource($"{IyzicoDefaults.INSTALLMENT_KEY}{installmentDetail.InstallmentNumber}");
                     installment.InstallmentNumber = installmentDetail.InstallmentNumber ?? 0;
 
                     decimal price = DecimalParse(installmentDetail.Price);
-                    installment.Price = await FormatPriceAndShowCurrencyAsync(price, priceIncludesTax);
+                    installment.Price =  FormatPriceAndShowCurrency(price, priceIncludesTax);
 
                     decimal totalPrice = DecimalParse(installmentDetail.TotalPrice);
-                    installment.TotalPrice = await FormatPriceAndShowCurrencyAsync(totalPrice, priceIncludesTax);
+                    installment.TotalPrice =  FormatPriceAndShowCurrency(totalPrice, priceIncludesTax);
 
                     installments.Add(installment);
                 }
@@ -430,13 +426,13 @@
                 return installments;
             }
            
-            var subtotal = await _currencyService.ConvertFromPrimaryStoreCurrencyAsync(shoppingCartTotal ?? 0, Currency);
+            var subtotal =  _currencyService.ConvertFromPrimaryStoreCurrency(shoppingCartTotal ?? 0, Currency);
             installments.Add(new Installment
             {
-                DisplayName = await _localizationService.GetResourceAsync($"{IyzicoDefaults.INSTALLMENT_KEY}1"),
+                DisplayName =  _localizationService.GetResource($"{IyzicoDefaults.INSTALLMENT_KEY}1"),
                 InstallmentNumber = 1,
-                Price = await FormatPriceAndShowCurrencyAsync(subtotal, priceIncludesTax),
-                TotalPrice = await FormatPriceAndShowCurrencyAsync(subtotal, priceIncludesTax)
+                Price =  FormatPriceAndShowCurrency(subtotal, priceIncludesTax),
+                TotalPrice =  FormatPriceAndShowCurrency(subtotal, priceIncludesTax)
             });
 
             return installments;
@@ -468,8 +464,7 @@
             {
                 HttpOnly = true,
                 Expires = cookieExpiresDate,
-                Secure = _webHelper.IsCurrentConnectionSecured(),
-                SameSite = SameSiteMode.None
+                Secure = _webHelper.IsCurrentConnectionSecured()
             };
             _httpContextAccessor.HttpContext.Response.Cookies.Append(key, JsonConvert.SerializeObject(value), options);
         }
@@ -498,14 +493,12 @@
         /// <summary>
         /// Gets or sets current user working currency
         /// </summary>
-        /// <returns>A task that represents the asynchronous operation</returns>
-        protected virtual Core.Domain.Directory.Currency Currency => _workContext.GetWorkingCurrencyAsync().Result;
+        protected virtual Core.Domain.Directory.Currency Currency => _workContext.WorkingCurrency;
 
         /// <summary>
         /// Gets current user working language
         /// </summary>
-        /// <returns>A task that represents the asynchronous operation</returns>
-        protected virtual Language Language => _workContext.GetWorkingLanguageAsync().Result;
+        protected virtual Language Language => _workContext.WorkingLanguage;
 
         /// <summary>
         /// Formats the price
@@ -513,12 +506,11 @@
         /// <param name="price">Price</param>
         /// <param name="priceIncludesTax">A value indicating whether price includes tax</param>
         /// <returns>
-        /// A task that represents the asynchronous operation 
-        /// The task result contains the price
+        /// string
         /// </returns>
-        protected virtual async Task<string> FormatPriceAndShowCurrencyAsync(decimal price, bool priceIncludesTax)
+        protected virtual string FormatPriceAndShowCurrency(decimal price, bool priceIncludesTax)
         {
-            return await _priceFormatter.FormatPriceAsync(price, true, Currency, Language.Id, priceIncludesTax);
+            return _priceFormatter.FormatPrice(price, true, Currency, Language.Id, priceIncludesTax);
         }
 
         /// <summary>
@@ -549,12 +541,12 @@
         /// </summary>
         /// <param name="address"> customer address</param>
         /// <returns>
-        /// A task that represents the asynchronous operation
+        /// A task that represents the hronous operation
         /// The task result contains a buyer address      
         /// </returns>
-        protected virtual async Task<Address> GetAddressAsync(Core.Domain.Common.Address address)
+        protected virtual Address GetAddress(Core.Domain.Common.Address address)
         {
-            var country = await _countryService.GetCountryByIdAsync(address.CountryId ?? 0);
+            var country =  _countryService.GetCountryById(address.CountryId ?? 0);
             if (country == null)
                 throw new NopException("Billing address country not set");
 
@@ -574,28 +566,28 @@
         /// <param name="processPaymentRequest">Process Payment Request</param>
         /// <param name="paymentCard">Payment Card</param>
         /// <returns>installment</returns>
-        protected virtual async Task<Installment> GetInstallmentAsync(ProcessPaymentRequest processPaymentRequest, PaymentCard paymentCard)
+        protected virtual Installment GetInstallment(ProcessPaymentRequest processPaymentRequest, PaymentCard paymentCard)
         {
             var installment = new Installment()
             {
                 InstallmentNumber = 1,
-                TotalPrice = await RoundAndFormatPriceAsync(processPaymentRequest.OrderTotal)
+                TotalPrice =  RoundAndFormatPrice(processPaymentRequest.OrderTotal)
             };
 
-            var locale = IyzicoHelper.GetLocale((await _workContext.GetWorkingLanguageAsync()).UniqueSeoCode);
+            var locale = IyzicoHelper.GetLocale( _workContext.WorkingLanguage.UniqueSeoCode);
             var options = IyzicoHelper.GetIyzicoOptions(_iyzicoSettings);
             var retrieveInstallmentInfoRequest = new RetrieveInstallmentInfoRequest()
             {
                 BinNumber = paymentCard.CardNumber,
                 Locale = locale,
-                Price = await RoundAndFormatPriceAsync(processPaymentRequest.OrderTotal),
+                Price =  RoundAndFormatPrice(processPaymentRequest.OrderTotal),
                 ConversationId = string.Empty
             };
             var installmentInfo = InstallmentInfo.Retrieve(retrieveInstallmentInfoRequest, options);
 
             if (installmentInfo.Status == $"{Status.SUCCESS}" && installmentInfo.InstallmentDetails.Any())
             {
-                var installmentKey = await _localizationService.GetResourceAsync(IyzicoDefaults.INSTALLMENT_KEY);
+                var installmentKey =  _localizationService.GetResource(IyzicoDefaults.INSTALLMENT_KEY);
                 var installmentValue = (string)processPaymentRequest.CustomValues.GetValueOrDefault(installmentKey);
 
                 int.TryParse(installmentValue, out int formInstallment);
@@ -616,33 +608,33 @@
         /// <param name="customer">Customer</param>
         /// <param name="storeId">Store identifier</param>
         /// <returns>List of transaction items</returns>
-        protected virtual async Task<List<BasketItem>> GetItemsAsync(Customer customer, int storeId)
+        protected virtual List<BasketItem> GetItems(Customer customer, int storeId)
         {
             //get current shopping cart            
-            var shoppingCart = await _shoppingCartService.GetShoppingCartAsync(customer, ShoppingCartType.ShoppingCart, storeId);
-            var basketItems = shoppingCart.Select(async shoppingCartItem =>
+            var shoppingCart =  _shoppingCartService.GetShoppingCart(customer, ShoppingCartType.ShoppingCart, storeId);
+            var basketItems = shoppingCart.Select( shoppingCartItem =>
             {
-                var product = await _productService.GetProductByIdAsync(shoppingCartItem.ProductId);
-                var (unitPrice, _, _) = await _shoppingCartService.GetUnitPriceAsync(shoppingCartItem, includeDiscounts: true);
-                var (price, _) = await _taxService.GetProductPriceAsync(product, unitPrice);
-                var shoppingCartUnitPriceWithDiscount = await _currencyService.ConvertFromPrimaryStoreCurrencyAsync(price, await _workContext.GetWorkingCurrencyAsync());
+                var product =  _productService.GetProductById(shoppingCartItem.ProductId);
+                var unitPrice=  _shoppingCartService.GetUnitPrice(shoppingCartItem, includeDiscounts: true);
+                var price = _taxService.GetProductPrice(product, unitPrice, out decimal _);
+                var shoppingCartUnitPriceWithDiscount =  _currencyService.ConvertFromPrimaryStoreCurrency(price,  _workContext.WorkingCurrency);
 
-                var categories = await _categoryService.GetProductCategoriesByProductIdAsync(shoppingCartItem.ProductId);
-                var categoriesName = categories.Select(c => _categoryService.GetCategoryByIdAsync(c.CategoryId).Result.Name).Aggregate((p, n) => $"{p},{n}");
+                var categories =  _categoryService.GetProductCategoriesByProductId(shoppingCartItem.ProductId);
+                var categoriesName = categories.Select(c => _categoryService.GetCategoryById(c.CategoryId).Name).Aggregate((p, n) => $"{p},{n}");
 
                 return new BasketItem
                 {
                     Id = $"{product.Id}",
                     Name = product.Name,
                     Category1 = categoriesName,
-                    Price = await RoundAndFormatPriceAsync(shoppingCartUnitPriceWithDiscount * shoppingCartItem.Quantity),
+                    Price =  RoundAndFormatPrice(shoppingCartUnitPriceWithDiscount * shoppingCartItem.Quantity),
                     ItemType = $"{BasketItemType.PHYSICAL}",
                 };
 
-            })?.Select(i => i.Result)?.ToList() ?? new List<BasketItem>();
+            })?.Select(i => i)?.ToList() ?? new List<BasketItem>();
 
             //shipping without tax
-            var (shippingTotal, _, _) = await _orderTotalCalculationService.GetShoppingCartShippingTotalAsync(shoppingCart, false);
+            var shippingTotal =  _orderTotalCalculationService.GetShoppingCartShippingTotal(shoppingCart, false);
             if (shippingTotal.HasValue && shippingTotal.Value != 0)
             {
                 basketItems.Add(new BasketItem
@@ -650,7 +642,7 @@
                     Id = $"{Guid.NewGuid()}",
                     Name = "Shipping",
                     Category1 = "Shipping",
-                    Price = await RoundAndFormatPriceAsync(shippingTotal ?? 0),
+                    Price =  RoundAndFormatPrice(shippingTotal ?? 0),
                     ItemType = $"{BasketItemType.VIRTUAL}",
                 });
             }
@@ -665,10 +657,10 @@
         /// <returns>
         /// Formated decimal
         /// </returns>
-        protected virtual async Task<string> RoundAndFormatPriceAsync(decimal value)
+        protected virtual string RoundAndFormatPrice(decimal value)
         {
-            return (await _priceCalculationService.RoundPriceAsync(value)).ToString("f2", new CultureInfo("en-US"));
-            //return (await _priceCalculationService.RoundPriceAsync(value)).ToString("f2", CultureInfo.InvariantCulture);
+            return ( _priceCalculationService.RoundPrice(value)).ToString("f2", new CultureInfo("en-US"));
+            //return ( _priceCalculationService.RoundPrice(value)).ToString("f2", CultureInfo.InvariantCulture);
         }
 
         /// <summary>
@@ -676,25 +668,24 @@
         /// </summary>
         /// <param name="customerId">Customer identifier</param>
         /// <returns>
-        /// A task that represents the asynchronous operation
-        /// The task result contains a buyer
+        /// Buyer
         /// </returns>
-        protected virtual async Task<Buyer> GetBuyerAsync(int customerId)
+        protected virtual Buyer GetBuyer(int customerId)
         {
-            var customer = await _customerService.GetCustomerByIdAsync(customerId);
+            var customer =  _customerService.GetCustomerById(customerId);
 
-            var customerName = await _genericAttributeService.GetAttributeAsync<string>(customer, NopCustomerDefaults.FirstNameAttribute);
-            var customerSurName = await _genericAttributeService.GetAttributeAsync<string>(customer, NopCustomerDefaults.LastNameAttribute);
-            var customerIdentityNumber = await _genericAttributeService.GetAttributeAsync<string>(customer, "IdentityNumber");
+            var customerName =  _genericAttributeService.GetAttribute<string>(customer, NopCustomerDefaults.FirstNameAttribute);
+            var customerSurName =  _genericAttributeService.GetAttribute<string>(customer, NopCustomerDefaults.LastNameAttribute);
+            var customerIdentityNumber =  _genericAttributeService.GetAttribute<string>(customer, "IdentityNumber");
             if (string.IsNullOrEmpty(customerIdentityNumber))
                 customerIdentityNumber = "11111111111";
-            var customerGsmNumber = await _genericAttributeService.GetAttributeAsync<string>(customer, NopCustomerDefaults.PhoneAttribute);
+            var customerGsmNumber =  _genericAttributeService.GetAttribute<string>(customer, NopCustomerDefaults.PhoneAttribute);
 
-            var billingAddress = await _addressService.GetAddressByIdAsync(customer.BillingAddressId ?? 0);
+            var billingAddress =  _addressService.GetAddressById(customer.BillingAddressId ?? 0);
             if (billingAddress == null)
                 throw new NopException("Customer billing address not set");
 
-            var country = await _countryService.GetCountryByIdAsync(billingAddress.CountryId ?? 0);
+            var country =  _countryService.GetCountryById(billingAddress.CountryId ?? 0);
             if (country == null)
                 throw new NopException("Billing address country not set");
 
@@ -719,25 +710,25 @@
         /// </summary>
         /// <param name="processPaymentRequest">ProcessPaymentRequest</param>
         /// <returns>
-        /// A task that represents the asynchronous operation      
+        /// CreatePaymentRequest     
         /// </returns>
-        protected virtual async Task<CreatePaymentRequest> GetCreatePaymentRequestAsync(ProcessPaymentRequest processPaymentRequest)
+        protected virtual CreatePaymentRequest GetCreatePaymentRequest(ProcessPaymentRequest processPaymentRequest)
         {
-            var billingAddressId = (await _customerService.GetCustomerByIdAsync(processPaymentRequest.CustomerId))?.BillingAddressId;
-            var billingAddress = await _addressService.GetAddressByIdAsync(billingAddressId ?? 0);
+            var billingAddressId = ( _customerService.GetCustomerById(processPaymentRequest.CustomerId))?.BillingAddressId;
+            var billingAddress =  _addressService.GetAddressById(billingAddressId ?? 0);
             if (billingAddress == null)
                 throw new NopException("Customer billing address not set");
 
-            var shippingAddressId = (await _customerService.GetCustomerByIdAsync(processPaymentRequest.CustomerId))?.ShippingAddressId;
-            var shippingAddress = await _addressService.GetAddressByIdAsync(shippingAddressId ?? 0);
+            var shippingAddressId = ( _customerService.GetCustomerById(processPaymentRequest.CustomerId))?.ShippingAddressId;
+            var shippingAddress =  _addressService.GetAddressById(shippingAddressId ?? 0);
 
-            var billingAddressModel = await GetAddressAsync(billingAddress);
-            var shippingAddressModel = shippingAddress != null ? await GetAddressAsync(shippingAddress) : billingAddressModel;
+            var billingAddressModel =  GetAddress(billingAddress);
+            var shippingAddressModel = shippingAddress != null ?  GetAddress(shippingAddress) : billingAddressModel;
 
-            var customer = await _customerService.GetCustomerByIdAsync(processPaymentRequest.CustomerId);
-            var shoppingCart = await _shoppingCartService.GetShoppingCartAsync(customer, ShoppingCartType.ShoppingCart);
+            var customer =  _customerService.GetCustomerById(processPaymentRequest.CustomerId);
+            var shoppingCart =  _shoppingCartService.GetShoppingCart(customer, ShoppingCartType.ShoppingCart);
 
-            var (shoppingCartTotal, _, _, _, _, _) = await _orderTotalCalculationService.GetShoppingCartTotalAsync(shoppingCart, usePaymentMethodAdditionalFee: false);
+            var shoppingCartTotal =  _orderTotalCalculationService.GetShoppingCartTotal(shoppingCart, usePaymentMethodAdditionalFee: false);
 
             if (processPaymentRequest.OrderTotal == 0)
                 processPaymentRequest.OrderTotal = shoppingCartTotal.Value;
@@ -751,25 +742,25 @@
                 Cvc = processPaymentRequest.CreditCardCvv2
             };
 
-            var locale = IyzicoHelper.GetLocale((await _workContext.GetWorkingLanguageAsync()).UniqueSeoCode);
-            var currencyCode = IyzicoHelper.GetIyzicoCurrency((await _workContext.GetWorkingCurrencyAsync()).CurrencyCode);
-            var installment = await GetInstallmentAsync(processPaymentRequest, paymentCard);
+            var locale = IyzicoHelper.GetLocale(_workContext.WorkingLanguage.UniqueSeoCode);
+            var currencyCode = IyzicoHelper.GetIyzicoCurrency( _workContext.WorkingCurrency.CurrencyCode);
+            var installment =  GetInstallment(processPaymentRequest, paymentCard);
            
             return new CreatePaymentRequest
             {
                 Locale = locale,
                 PaymentChannel = $"{PaymentChannel.WEB}",
                 PaymentGroup = $"{PaymentGroup.PRODUCT}",
-                Price = await RoundAndFormatPriceAsync(shoppingCartTotal ?? 0),
+                Price =  RoundAndFormatPrice(shoppingCartTotal ?? 0),
                 PaidPrice = installment.TotalPrice,
                 Currency = currencyCode,
                 Installment = installment.InstallmentNumber,
                 BasketId = $"{processPaymentRequest.OrderGuid}",
                 PaymentCard = paymentCard,
-                Buyer = await GetBuyerAsync(processPaymentRequest.CustomerId),
+                Buyer =  GetBuyer(processPaymentRequest.CustomerId),
                 ShippingAddress = shippingAddressModel,
                 BillingAddress = billingAddressModel,
-                BasketItems = await GetItemsAsync(customer, processPaymentRequest.StoreId),
+                BasketItems =  GetItems(customer, processPaymentRequest.StoreId),
             };
         }
 
@@ -779,15 +770,15 @@
         /// </summary>
         /// <param name="threedsCallbackResource">ThreedsCallbackResource</param>
         /// <returns>
-        /// A task that represents the asynchronous operation
+        /// ProcessPaymentResult
         /// </returns>
-        protected virtual async Task<ProcessPaymentResult> CreateThreedsPaymentAsync(ThreedsCallbackResource threedsCallbackResource)
+        protected virtual ProcessPaymentResult CreateThreedsPayment(ThreedsCallbackResource threedsCallbackResource)
         {
             var processPaymentResult = new ProcessPaymentResult();
 
             if (threedsCallbackResource.Status == $"{Status.SUCCESS}")
             {
-                var locale = IyzicoHelper.GetLocale((await _workContext.GetWorkingLanguageAsync()).UniqueSeoCode);
+                var locale = IyzicoHelper.GetLocale(( _workContext.WorkingLanguage).UniqueSeoCode);
                 var options = IyzicoHelper.GetIyzicoOptions(_iyzicoSettings);
                 var createThreedsPaymentRequest = new CreateThreedsPaymentRequest
                 {
@@ -799,18 +790,18 @@
                 var threedsPayment = ThreedsPayment.Create(createThreedsPaymentRequest, options);
                 if (threedsPayment.Status == $"{Status.SUCCESS}")
                 {
-                    await AddIyzicoPaymentAsync(threedsPayment);
+                     AddIyzicoPayment(threedsPayment);
                     processPaymentResult.NewPaymentStatus = PaymentStatus.Paid;
 
                     return processPaymentResult;
                 }
 
-                //string errorMessage = await _localizationService.GetResourceAsync($"Plugins.Payments.Iyzico.ErrorMessage.{threedsPayment.ErrorCode}");
+                //string errorMessage =  _localizationService.GetResource($"Plugins.Payments.Iyzico.ErrorMessage.{threedsPayment.ErrorCode}");
                 processPaymentResult.AddError(threedsPayment.ErrorMessage);//TODO:... get mappin errors
                 return processPaymentResult;
             }
             
-            var errorMessage = await _localizationService.GetResourceAsync($"Plugins.Payments.Iyzico.ErrorMessage.MdStatus.{threedsCallbackResource.MdStatus}");
+            var errorMessage =  _localizationService.GetResource($"Plugins.Payments.Iyzico.ErrorMessage.MdStatus.{threedsCallbackResource.MdStatus}");
             processPaymentResult.AddError(errorMessage);
 
             return processPaymentResult;
@@ -820,10 +811,9 @@
         /// Add IyzicoPayment
         /// </summary>
         /// <param name="paymentResource">PaymentResource</param>
-        /// <returns>A task that represents the asynchronous operation</returns>
-        protected virtual async Task AddIyzicoPaymentAsync(PaymentResource paymentResource)
+        protected virtual void AddIyzicoPayment(PaymentResource paymentResource)
         {
-            var customerId = (await _workContext.GetCurrentCustomerAsync()).Id;
+            var customerId = _workContext.CurrentCustomer.Id;
             var iyzicoPayment = new IyzicoPayment
             {
                 CustomerId = customerId,
@@ -833,10 +823,10 @@
                 Installment = paymentResource.Installment,
                 CreatedOnUtc = DateTime.Now,
             };
-            await _iyzicoPaymentRepository.InsertAsync(iyzicoPayment);
+             _iyzicoPaymentRepository.Insert(iyzicoPayment);
             foreach (var paymentItem in paymentResource.PaymentItems)
             {
-                await _iyzicoPaymentItemRepository.InsertAsync(new IyzicoPaymentItem
+                 _iyzicoPaymentItemRepository.Insert(new IyzicoPaymentItem
                 {
                     IyzicoPaymentId = iyzicoPayment.Id,
                     PaymentTransactionId = paymentItem.PaymentTransactionId,
@@ -852,37 +842,37 @@
         /// Get IyzicoPayment by basket id
         /// </summary>
         /// <param name="basketId">Iyzico BasketId : e-commerce OrderGuid</param>
-        /// <returns>A task that represents the asynchronous operation</returns>
-        protected virtual async Task<IyzicoPayment> GetIyzicoPaymentByBasketIdAsync(string basketId)
+        /// <returns>IyzicoPayment</returns>
+        protected virtual IyzicoPayment GetIyzicoPaymentByBasketId(string basketId)
         {
             var query = _iyzicoPaymentRepository.Table;
-            return await query.FirstOrDefaultAsync(q => q.BasketId == basketId);
+            return  query.FirstOrDefault(q => q.BasketId == basketId);
         }
 
         /// <summary>
         /// Get IyzicoPaymentItems by IyzicoPaymentId
         /// </summary>
         /// <param name="iyzicoPaymentId">IyzicoPaymentId</param>
-        /// <returns>A task that represents the asynchronous operation</returns>
-        protected virtual async Task<IList<IyzicoPaymentItem>> GetIyzicoPaymentItemsByIyzicoPaymentIdAsync(int iyzicoPaymentId)
+        /// <returns>IList<IyzicoPaymentItem></returns>
+        protected virtual IList<IyzicoPaymentItem> GetIyzicoPaymentItemsByIyzicoPaymentId(int iyzicoPaymentId)
         {
             var query = _iyzicoPaymentItemRepository.Table;
             query = query.Where(q => q.IyzicoPaymentId == iyzicoPaymentId);
 
-            return await query.ToListAsync();
+            return  query.ToList();
         }
 
         /// <summary>
         /// Exists IyzicoPaymentRefund
         /// </summary>
         /// <param name="orderId">OrderId</param>
-        /// <returns>A task that represents the asynchronous operation</returns>
-        protected virtual async Task<bool> ExistsIyzicoPaymentRefundAsync(int orderId)
+        /// <returns>bool</returns>
+        protected virtual bool ExistsIyzicoPaymentRefund(int orderId)
         {
             var query = _iyzicoPaymentRefundRepository.Table;
             query = query.Where(q => q.OrderId == orderId);
 
-            return await query.AnyAsync();
+            return  query.Any();
         }
 
         #endregion

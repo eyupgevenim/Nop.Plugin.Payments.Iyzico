@@ -14,7 +14,7 @@
         public ThreedsCallbackResourceValidator(ILocalizationService localizationService)
         {
             //set validation rules
-            RuleFor(x => x.Status).Must((x, context) => x.Status == $"{Status.SUCCESS}").WithMessage(x => localizationService.GetResourceAsync($"Plugins.Payments.Iyzico.ErrorMessage.MdStatus.{x.MdStatus}").Result);
+            RuleFor(x => x.Status).Must((x, context) => x.Status == $"{Status.SUCCESS}").WithMessage(x => localizationService.GetResource($"Plugins.Payments.Iyzico.ErrorMessage.MdStatus.{x.MdStatus}"));
             RuleFor(x => x.PaymentId).NotEmpty();
             //TODO:.....
             //RuleFor(x => x.ConversationId).NotEmpty();

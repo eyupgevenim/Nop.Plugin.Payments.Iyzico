@@ -14,11 +14,11 @@
         public PaymentInfoValidator(ILocalizationService localizationService)
         {
             //set validation rules
-            RuleFor(x => x.CardholderName).NotEmpty().WithMessageAwait(localizationService.GetResourceAsync("Payment.CardholderName.Required"));
-            RuleFor(x => x.CardNumber).IsCreditCard().WithMessageAwait(localizationService.GetResourceAsync("Payment.CardNumber.Wrong"));
-            RuleFor(x => x.CardCode).NotEmpty().Matches(@"^[0-9]{3,4}$").WithMessageAwait(localizationService.GetResourceAsync("Payment.CardCode.Wrong"));
-            RuleFor(x => x.ExpireMonth).NotEmpty().WithMessageAwait(localizationService.GetResourceAsync("Payment.ExpireMonth.Required"));
-            RuleFor(x => x.ExpireYear).NotEmpty().WithMessageAwait(localizationService.GetResourceAsync("Payment.ExpireYear.Required"));
+            RuleFor(x => x.CardholderName).NotEmpty().WithMessage(localizationService.GetResource("Payment.CardholderName.Required"));
+            RuleFor(x => x.CardNumber).IsCreditCard().WithMessage(localizationService.GetResource("Payment.CardNumber.Wrong"));
+            RuleFor(x => x.CardCode).NotEmpty().Matches(@"^[0-9]{3,4}$").WithMessage(localizationService.GetResource("Payment.CardCode.Wrong"));
+            RuleFor(x => x.ExpireMonth).NotEmpty().WithMessage(localizationService.GetResource("Payment.ExpireMonth.Required"));
+            RuleFor(x => x.ExpireYear).NotEmpty().WithMessage(localizationService.GetResource("Payment.ExpireYear.Required"));
             RuleFor(x => x.ExpireMonth).Must((x, context) =>
             {
                 //not specified yet
@@ -33,10 +33,10 @@
                     return false;
 
                 return true;
-            }).WithMessageAwait(localizationService.GetResourceAsync("Payment.ExpirationDate.Expired"));
+            }).WithMessage(localizationService.GetResource("Payment.ExpirationDate.Expired"));
 
             //TODO....
-            //RuleFor(x => x.Installment).Matches(@"^[0-9]*$").WithMessageAwait(localizationService.GetResourceAsync("Plugins.Payments.Iyzico.Installment.Wrong"));
+            //RuleFor(x => x.Installment).Matches(@"^[0-9]*$").WithMessage(localizationService.GetResource("Plugins.Payments.Iyzico.Installment.Wrong"));
         }
     }
 }
