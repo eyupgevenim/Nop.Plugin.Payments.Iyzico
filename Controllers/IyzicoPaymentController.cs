@@ -1,25 +1,25 @@
 ﻿namespace Nop.Plugin.Payments.Iyzico.Controllers
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Linq;
     using Microsoft.AspNetCore.Http;
     using Microsoft.AspNetCore.Mvc;
     using Nop.Core;
     using Nop.Core.Domain.Customers;
     using Nop.Core.Domain.Orders;
+    using Nop.Core.Domain.Payments;
     using Nop.Core.Http.Extensions;
     using Nop.Plugin.Payments.Iyzico.Domain;
     using Nop.Plugin.Payments.Iyzico.Models;
     using Nop.Plugin.Payments.Iyzico.Services;
     using Nop.Plugin.Payments.Iyzico.Validators;
     using Nop.Services.Common;
-    using Nop.Services.Customers;
     using Nop.Services.Localization;
     using Nop.Services.Logging;
     using Nop.Services.Orders;
     using Nop.Services.Payments;
     using Nop.Web.Framework.Controllers;
-    using System;
-    using System.Collections.Generic;
-    using System.Linq;
 
     public class IyzicoPaymentController : BasePluginController
     {
@@ -28,7 +28,6 @@
         private readonly IIyzicoPaymentService _iyzicoPaymentService;
         private readonly ILocalizationService _localizationService;
         private readonly IWorkContext _workContext;
-        private readonly ICustomerService _customerService;
         private readonly IShoppingCartService _shoppingCartService;
         private readonly IGenericAttributeService _genericAttributeService;
         private readonly OrderSettings _orderSettings;
@@ -37,7 +36,8 @@
         private readonly IPaymentService _paymentService;
         private readonly IStoreContext _storeContext;
         private readonly IWebHelper _webHelper;
-        private readonly IOrderService _orderService; 
+        private readonly IOrderService _orderService;
+        private readonly PaymentSettings _paymentSettings;
         #endregion
 
         #region Ctor
@@ -45,7 +45,6 @@
             IIyzicoPaymentService iyzicoPaymentService,
             ILocalizationService localizationService,
             IWorkContext workContext,
-            ICustomerService customerService,
             IShoppingCartService shoppingCartService,
             IGenericAttributeService genericAttributeService,
             OrderSettings orderSettings,
@@ -54,13 +53,13 @@
             IPaymentService paymentService,
             IStoreContext storeContext,
             IWebHelper webHelper,
-            IOrderService orderService)
+            IOrderService orderService, 
+            PaymentSettings paymentSettings)
         {
             _logger = logger;
             _iyzicoPaymentService = iyzicoPaymentService;
             _localizationService = localizationService;
             _workContext = workContext;
-            _customerService = customerService;
             _shoppingCartService = shoppingCartService;
             _genericAttributeService = genericAttributeService;
             _orderSettings = orderSettings;
@@ -70,6 +69,7 @@
             _storeContext = storeContext;
             _webHelper = webHelper;
             _orderService = orderService;
+            _paymentSettings = paymentSettings;
         }
         #endregion
 
@@ -97,7 +97,7 @@
             if (_orderSettings.OnePageCheckoutEnabled)
                 return RedirectToRoute("CheckoutOnePage");
 
-            if (_customerService.IsGuest(_workContext.CurrentCustomer) && !_orderSettings.AnonymousCheckoutAllowed)
+            if (_workContext.CurrentCustomer.IsGuest() && !_orderSettings.AnonymousCheckoutAllowed)
                 return Challenge();
 
             //Check whether payment workflow is required
@@ -124,7 +124,7 @@
                 //get payment info
                 var processPaymentRequest = _iyzicoPaymentService.GetPaymentInfo(form);
                 //set previous order GUID (if exists)
-                _paymentService.GenerateOrderGuid(processPaymentRequest);
+                GenerateOrderGuid(processPaymentRequest);
                 processPaymentRequest.StoreId = _storeContext.CurrentStore.Id;
                 processPaymentRequest.CustomerId = _workContext.CurrentCustomer.Id;
                 processPaymentRequest.PaymentMethodSystemName = paymentMethodSystemName;
@@ -193,7 +193,7 @@
             if (_orderSettings.OnePageCheckoutEnabled)
                 return RedirectToRoute("CheckoutOnePage");
 
-            if (_customerService.IsGuest(_workContext.CurrentCustomer) && !_orderSettings.AnonymousCheckoutAllowed)
+            if (_workContext.CurrentCustomer.IsGuest() && !_orderSettings.AnonymousCheckoutAllowed)
                 return Challenge();
 
             //model
@@ -223,7 +223,7 @@
                     return RedirectToRoute("CheckoutPaymentInfo");
                 }
 
-                _paymentService.GenerateOrderGuid(processPaymentRequest);
+                GenerateOrderGuid(processPaymentRequest);
                 processPaymentRequest.StoreId = _storeContext.CurrentStore.Id;
                 processPaymentRequest.CustomerId = _workContext.CurrentCustomer.Id;
                 processPaymentRequest.PaymentMethodSystemName = _genericAttributeService.GetAttribute<string>(_workContext.CurrentCustomer,
@@ -318,6 +318,38 @@
 
             var interval = DateTime.UtcNow - lastOrder.CreatedOnUtc;
             return interval.TotalSeconds > _orderSettings.MinimumOrderPlacementInterval;
+        }
+
+        /// <summary>
+        /// Generate an order GUID
+        /// </summary>
+        /// <param name="processPaymentRequest">Process payment request</param>
+        protected virtual void GenerateOrderGuid(ProcessPaymentRequest processPaymentRequest)
+        {
+            if (processPaymentRequest == null)
+                return;
+
+            //we should use the same GUID for multiple payment attempts
+            //this way a payment gateway can prevent security issues such as credit card brute-force attacks
+            //in order to avoid any possible limitations by payment gateway we reset GUID periodically
+            var previousPaymentRequest = HttpContext.Session.Get<ProcessPaymentRequest>("OrderPaymentInfo");
+            if (_paymentSettings.RegenerateOrderGuidInterval > 0 &&
+                previousPaymentRequest != null &&
+                previousPaymentRequest.OrderGuidGeneratedOnUtc.HasValue)
+            {
+                var interval = DateTime.UtcNow - previousPaymentRequest.OrderGuidGeneratedOnUtc.Value;
+                if (interval.TotalSeconds < _paymentSettings.RegenerateOrderGuidInterval)
+                {
+                    processPaymentRequest.OrderGuid = previousPaymentRequest.OrderGuid;
+                    processPaymentRequest.OrderGuidGeneratedOnUtc = previousPaymentRequest.OrderGuidGeneratedOnUtc;
+                }
+            }
+
+            if (processPaymentRequest.OrderGuid == Guid.Empty)
+            {
+                processPaymentRequest.OrderGuid = Guid.NewGuid();
+                processPaymentRequest.OrderGuidGeneratedOnUtc = DateTime.UtcNow;
+            }
         }
 
         #endregion

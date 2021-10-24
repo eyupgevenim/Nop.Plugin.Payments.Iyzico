@@ -15,22 +15,22 @@
         /// <summary>
         /// Register routes
         /// </summary>
-        /// <param name="endpointRouteBuilder">Route builder</param>
-        public void RegisterRoutes(IEndpointRouteBuilder endpointRouteBuilder)
+        /// <param name="routeBuilder">Route builder</param>
+        public void RegisterRoutes(IRouteBuilder routeBuilder)
         {
-            endpointRouteBuilder.MapControllerRoute(IyzicoDefaults.ConfigurationRouteName, "Plugins/Iyzico/Configure",
+            routeBuilder.MapRoute(IyzicoDefaults.ConfigurationRouteName, "Plugins/Iyzico/Configure",
                 new { controller = "IyzicoSettings", action = "Configure", area = AreaNames.Admin });
 
-            endpointRouteBuilder.MapControllerRoute(IyzicoDefaults.PaymentInfoRouteName, "Iyzico/PaymentInfo",
+            routeBuilder.MapRoute(IyzicoDefaults.PaymentInfoRouteName, "Iyzico/PaymentInfo",
                 new { controller = "IyzicoPayment", action = "PaymentInfo" });
 
-            endpointRouteBuilder.MapControllerRoute(IyzicoDefaults.CallbackConfirmRouteName, "Iyzico/CallbackConfirm",
+            routeBuilder.MapRoute(IyzicoDefaults.CallbackConfirmRouteName, "Iyzico/CallbackConfirm",
                 new { controller = "IyzicoPayment", action = "CallbackConfirm" });
 
-            endpointRouteBuilder.MapControllerRoute(IyzicoDefaults.OrderConfirmRouteName, "Iyzico/OrderConfirm",
+            routeBuilder.MapRoute(IyzicoDefaults.OrderConfirmRouteName, "Iyzico/OrderConfirm",
                 new { controller = "IyzicoPayment", action = "OrderConfirm" });
 
-            endpointRouteBuilder.MapControllerRoute(IyzicoDefaults.GetInstallmentRouteName, "Iyzico/GetInstallment",
+            routeBuilder.MapRoute(IyzicoDefaults.GetInstallmentRouteName, "Iyzico/GetInstallment",
                 new { controller = "IyzicoPayment", action = "GetInstallment" });
         }
 

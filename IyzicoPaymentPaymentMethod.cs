@@ -4,7 +4,10 @@
     using Microsoft.AspNetCore.Mvc;
     using Microsoft.AspNetCore.Mvc.Infrastructure;
     using Microsoft.AspNetCore.Mvc.Routing;
+    using Nop.Core.Caching;
+    using Nop.Core.Data;
     using Nop.Core.Domain.Cms;
+    using Nop.Core.Domain.Localization;
     using Nop.Core.Domain.Orders;
     using Nop.Core.Domain.Payments;
     using Nop.Plugin.Payments.Iyzico.Services;
@@ -14,6 +17,9 @@
     using Nop.Services.Plugins;
     using System.Collections.Generic;
     using System.Linq;
+    using Nop.Data;
+    using System;
+    using Nop.Plugin.Payments.Iyzico.Data;
 
     public class IyzicoPaymentPaymentMethod : BasePlugin, IPaymentMethod
     {
@@ -26,6 +32,9 @@
         private readonly PaymentSettings _paymentSettings;
         private readonly WidgetSettings _widgetSettings;
         private readonly ILanguageService _languageService;
+        private readonly IRepository<LocaleStringResource> _lsrRepository;
+        private readonly IStaticCacheManager _staticCacheManager;
+        private readonly IyzicoPaymentObjectContext _objectContext;
 
         #endregion
 
@@ -36,8 +45,11 @@
             IUrlHelperFactory urlHelperFactory,
             IActionContextAccessor actionContextAccessor,
             PaymentSettings paymentSettings,
-            WidgetSettings widgetSettings, 
-            ILanguageService languageService)
+            WidgetSettings widgetSettings,
+            ILanguageService languageService,
+            IRepository<LocaleStringResource> lsrRepository,
+            IStaticCacheManager staticCacheManager, 
+            IyzicoPaymentObjectContext objectContext)
         {
             _settingService = settingService;
             _iyzicoPaymentService = iyzicoPaymentService;
@@ -47,6 +59,9 @@
             _paymentSettings = paymentSettings;
             _widgetSettings = widgetSettings;
             _languageService = languageService;
+            _lsrRepository = lsrRepository;
+            _staticCacheManager = staticCacheManager;
+            _objectContext = objectContext;
         }
         #endregion
 
@@ -266,9 +281,12 @@
                 _settingService.SaveSetting(_widgetSettings);
             }
 
+            //database objects
+            _objectContext.Install();
+
             #region locales
 
-            _localizationService.AddPluginLocaleResource(new Dictionary<string, string>
+            var defaultLocaleResources = new Dictionary<string, string>
             {
                 ["Plugins.Payments.Iyzico.Admin.Fields.ApiKey"] = "Iyzico API Key",
                 ["Plugins.Payments.Iyzico.Admin.Fields.ApiKey.Hint"] = "Enter Iyzico API Key.",
@@ -293,15 +311,17 @@
                 ["Plugins.Payments.Iyzico.CardCode"] = "Card Code",
                 ["Plugins.Payments.Iyzico.Installment"] = "Installment",
                 ["Plugins.Payments.Iyzico.EmptyInstalment"] = "Empty Instalment"
-            });
+            };
+
+            foreach (var defaultLocaleResource in defaultLocaleResources)
+                _localizationService.AddOrUpdatePluginLocaleResource(defaultLocaleResource.Key, defaultLocaleResource.Value);
 
             var allLanguages = _languageService.GetAllLanguages();
 
             #region locales-on-engilish
-            var enLanguage = allLanguages.FirstOrDefault(x => x.LanguageCulture == "en-US");
-            if (enLanguage != null)
+            if (allLanguages.Any(x => x.LanguageCulture == "en-US"))
             {
-                _localizationService.AddPluginLocaleResource(new Dictionary<string, string>
+                var enLocaleResources = new Dictionary<string, string>
                 {
                     ["Plugins.Payments.Iyzico.Installment"] = "Installment",
                     ["Plugins.Payments.Iyzico.Installments"] = "Installments",
@@ -368,17 +388,18 @@
 
                     ["Plugins.Payments.Iyzico.ErrorMessage.UnauthenticatedPayment"] = "Unauthenticated Payment",
                     ["Plugins.Payments.Iyzico.ErrorMessage.Not3DCallbackResource"] = "Unknown resource",
+                };
 
-                }, enLanguage.Id);
+                foreach (var enLocaleResource in enLocaleResources)
+                    _localizationService.AddOrUpdatePluginLocaleResource(enLocaleResource.Key, enLocaleResource.Value, "en-US");
             }
 
             #endregion
 
             #region locales-on-turkish
-            var trLanguage = allLanguages.FirstOrDefault(x => x.LanguageCulture == "tr-TR");
-            if (trLanguage != null)
+            if (allLanguages.Any(x => x.LanguageCulture == "tr-TR"))
             {
-                _localizationService.AddPluginLocaleResource(new Dictionary<string, string>
+                var trLocaleResources = new Dictionary<string, string>
                 {
                     ["Plugins.Payments.Iyzico.CardHolderName"] = "Kart Sahibi",
                     ["Plugins.Payments.Iyzico.CardNumber"] = "Kart Numarası",
@@ -451,7 +472,10 @@
                     ["Plugins.Payments.Iyzico.ErrorMessage.UnauthenticatedPayment"] = "Doğrulanamayan ödeme",
                     ["Plugins.Payments.Iyzico.ErrorMessage.Not3DCallbackResource"] = "Bilinmeyen kaynak",
 
-                }, trLanguage.Id);
+                };
+
+                foreach (var trLocaleResource in trLocaleResources)
+                    _localizationService.AddOrUpdatePluginLocaleResource(trLocaleResource.Key, trLocaleResource.Value, "tr-TR");
             }
             #endregion 
 
@@ -481,10 +505,28 @@
             _settingService.DeleteSetting<IyzicoSettings>();
 
             //locales
-            _localizationService.DeletePluginLocaleResources("Plugins.Payments.Iyzico");
+            DeletePluginLocaleResources("Plugins.Payments.Iyzico");
+
+            //database objects
+            _objectContext.Uninstall();
 
             base.Uninstall();
         }
+
+        /// <summary>
+        /// Delete locale resources by the passed name prefix
+        /// </summary>
+        /// <param name="resourceNamePrefix">Resource name prefix</param>
+        protected virtual void DeletePluginLocaleResources(string resourceNamePrefix)
+        {
+            var locales = _lsrRepository.Table.Where(locale => !string.IsNullOrEmpty(locale.ResourceName) && locale.ResourceName.StartsWith(resourceNamePrefix, StringComparison.InvariantCultureIgnoreCase)).ToList();
+            foreach (var locale in locales)
+                _lsrRepository.Delete(locale);
+
+            //clear cache
+            _staticCacheManager.RemoveByPrefix(NopLocalizationDefaults.LocaleStringResourcesPrefixCacheKey);
+        }
+
 
         #endregion
 

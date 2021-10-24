@@ -12,6 +12,13 @@
         /// Gets or sets a IyzicoPayment identifier
         /// </summary>
         public int IyzicoPaymentId { get; set; }
+        //TODO:...
+        /**
+        /// <summary>
+        /// Gets or sets the IyzicoPayment
+        /// </summary>
+        public virtual IyzicoPayment IyzicoPayment { get; set; }
+        */
 
         /// <summary>
         /// ID of basket item. Merchants should keep payment ID in their system (this ID will be used for cancel requests)

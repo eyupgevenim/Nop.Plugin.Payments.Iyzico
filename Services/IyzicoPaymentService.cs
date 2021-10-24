@@ -9,6 +9,7 @@
     using Microsoft.Extensions.Primitives;
     using Newtonsoft.Json;
     using Nop.Core;
+    using Nop.Core.Data;
     using Nop.Core.Domain.Customers;
     using Nop.Core.Domain.Localization;
     using Nop.Core.Domain.Orders;
@@ -27,6 +28,7 @@
     using Nop.Services.Localization;
     using Nop.Services.Orders;
     using Nop.Services.Payments;
+    using Nop.Services.Shipping;
     using Nop.Services.Tax;
     using System;
     using System.Collections.Generic;
@@ -61,6 +63,8 @@
         private readonly IRepository<IyzicoPaymentRefund> _iyzicoPaymentRefundRepository;
         private readonly IActionContextAccessor _actionContextAccessor;
         private readonly IUrlHelperFactory _urlHelperFactory;
+        private readonly IShippingPluginManager _shippingPluginManager;
+        private readonly IStoreContext _storeContext;
         #endregion
 
         #region Ctor
@@ -88,7 +92,9 @@
             IRepository<IyzicoPaymentItem> iyzicoPaymentItemRepository,
             IRepository<IyzicoPaymentRefund> iyzicoPaymentRefundRepository,
             IActionContextAccessor actionContextAccessor,
-            IUrlHelperFactory urlHelperFactory)
+            IUrlHelperFactory urlHelperFactory,
+            IShippingPluginManager shippingPluginManager, 
+            IStoreContext storeContext)
         {
             _customerService = customerService;
             _addressService = addressService;
@@ -115,6 +121,8 @@
             _iyzicoPaymentRefundRepository = iyzicoPaymentRefundRepository;
             _actionContextAccessor = actionContextAccessor;
             _urlHelperFactory = urlHelperFactory;
+            _shippingPluginManager = shippingPluginManager;
+            _storeContext = storeContext;
         }
         #endregion
 
@@ -510,7 +518,7 @@
         /// </returns>
         protected virtual string FormatPriceAndShowCurrency(decimal price, bool priceIncludesTax)
         {
-            return _priceFormatter.FormatPrice(price, true, Currency, Language.Id, priceIncludesTax);
+            return _priceFormatter.FormatPrice(price, true, Currency, Language, priceIncludesTax);
         }
 
         /// <summary>
@@ -615,7 +623,7 @@
             var basketItems = shoppingCart.Select( shoppingCartItem =>
             {
                 var product =  _productService.GetProductById(shoppingCartItem.ProductId);
-                var unitPrice=  _shoppingCartService.GetUnitPrice(shoppingCartItem, includeDiscounts: true);
+                var unitPrice= _priceCalculationService.GetUnitPrice(shoppingCartItem, includeDiscounts: true);
                 var price = _taxService.GetProductPrice(product, unitPrice, out decimal _);
                 var shoppingCartUnitPriceWithDiscount =  _currencyService.ConvertFromPrimaryStoreCurrency(price,  _workContext.WorkingCurrency);
 
@@ -633,8 +641,11 @@
 
             })?.Select(i => i)?.ToList() ?? new List<BasketItem>();
 
+            //LoadAllShippingRateComputationMethods
+            var shippingRateComputationMethods = _shippingPluginManager.LoadActivePlugins(customer, _storeContext.CurrentStore.Id);
+
             //shipping without tax
-            var shippingTotal =  _orderTotalCalculationService.GetShoppingCartShippingTotal(shoppingCart, false);
+            var shippingTotal =  _orderTotalCalculationService.GetShoppingCartShippingTotal(shoppingCart, shippingRateComputationMethods);
             if (shippingTotal.HasValue && shippingTotal.Value != 0)
             {
                 basketItems.Add(new BasketItem
@@ -642,7 +653,7 @@
                     Id = $"{Guid.NewGuid()}",
                     Name = "Shipping",
                     Category1 = "Shipping",
-                    Price =  RoundAndFormatPrice(shippingTotal ?? 0),
+                    Price = RoundAndFormatPrice(shippingTotal.Value),
                     ItemType = $"{BasketItemType.VIRTUAL}",
                 });
             }

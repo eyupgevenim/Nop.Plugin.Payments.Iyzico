@@ -2,6 +2,7 @@
 {
     using System;
     using Nop.Core;
+    using Nop.Core.Domain.Customers;
 
     public class IyzicoPayment : BaseEntity
     {
@@ -9,6 +10,13 @@
         /// Gets or sets a customer identifier
         /// </summary>
         public int CustomerId { get; set; }
+        //TODO:...
+        /**
+        /// <summary>
+        /// Gets or sets the customer
+        /// </summary>
+        public virtual Customer Customer { get; set; }
+        */
 
         /// <summary>
         /// Merchant's basket ID

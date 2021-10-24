@@ -42,7 +42,7 @@
         #region Methods
 
         [AutoValidateAntiforgeryToken]
-        public async Task<IActionResult> Configure()
+        public IActionResult Configure()
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageShippingSettings))
                 return AccessDeniedView();
@@ -63,18 +63,18 @@
         [AutoValidateAntiforgeryToken]
         [HttpPost, ActionName("Configure")]
         [FormValueRequired("save")]
-        public async Task<IActionResult> Configure(ConfigurationModel model)
+        public IActionResult Configure(ConfigurationModel model)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManagePaymentMethods))
                 return AccessDeniedView();
 
             if (!ModelState.IsValid)
-                return await Configure();
+                return Configure();
 
             //validate configuration (custom validation)
             var validationResult = new ConfigurationValidator(_localizationService).Validate(model);
             if (!validationResult.IsValid)
-                return await Configure();
+                return Configure();
 
             _iyzicoSettings.ApiKey = model.ApiKey;
             _iyzicoSettings.SecretKey = model.SecretKey;
