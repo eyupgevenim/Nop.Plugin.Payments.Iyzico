@@ -54,7 +54,7 @@ Bu eklentiyi daha iyi hala getirmek için öneri ve pull request'lerinize açık
 2. Yönetici alanı > Yapılandırma > Yerel eklentiler'e gidin.
 3. Eklenti arşivini "Eklentiyi veya temayı yükle" eklentisini kullanarak yükleyin.
 4. Yeni yüklenen eklentiyi bulmak için eklentiler listesinde aşağı kaydırın. Ve eklentiyi kurmak için "Yükle" düğmesine tıklayın.
-5. İyzico api bilgilerinizi ve yapılandırma tercihlerinizi belirleyin.
+5. İyzico api bilgilerinizi ve yapılandırma tercihlerinizi belirleyin. [Eklenti linki](https://www.nopcommerce.com/tr/iyzico-3d-secure-sanal-pos)
 
 Eklentilerin nasıl kurulacağı hakkında daha fazla bilgiyi [burada](https://docs.nopcommerce.com/user-guide/configuring/system/plugins.html) bulabilirsiniz.
 
@@ -107,7 +107,7 @@ You can include it in your project and you can develop and pull request too
 1. Go to admin area > configuration > local plugins.
 1. Upload the plugin archive using the "Upload plugin or theme" plugin.
 1. Scroll down through the list of plugins to find the newly installed plugin. And click on the "Install" button to install the plugin.
-1. Register with the Iyzico with [this link](http://eepurl.com/bze81f)
+1. Register with the Iyzico with [this link](https://www.nopcommerce.com/en/iyzico-3d-secure-sanal-pos)
 
 Please find more information about how to install plugins [here](https://docs.nopcommerce.com/user-guide/configuring/system/plugins.html).
 
