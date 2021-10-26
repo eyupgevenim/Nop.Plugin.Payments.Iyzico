@@ -300,10 +300,10 @@
             var validator = new ThreedsCallbackResourceValidator(_localizationService);
             var validationResult = validator.Validate(threedsCallbackResource);
 
-            if (validationResult.IsValid)
-                return warnings;
+            if (!validationResult.IsValid)
+                foreach (var error in validationResult.Errors)
+                    warnings.Add(error.ErrorMessage);
 
-            warnings.Add(validationResult.ToString(". "));
             return warnings;
         }
 

@@ -62,7 +62,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="FluentValidation" Version="10.3.3" />
     <PackageReference Include="Iyzipay" Version="2.1.39" />
   </ItemGroup>
 

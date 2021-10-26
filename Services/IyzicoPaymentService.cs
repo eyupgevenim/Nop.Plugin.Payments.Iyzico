@@ -192,7 +192,8 @@
             var validationResult = validator.Validate(model);
 
             if (!validationResult.IsValid)
-                model.Warnings.Add(validationResult.ToString(". "));
+                foreach (var error in validationResult.Errors)
+                    model.Warnings.Add(error.ErrorMessage);
 
             return Task.FromResult(model);
         }
