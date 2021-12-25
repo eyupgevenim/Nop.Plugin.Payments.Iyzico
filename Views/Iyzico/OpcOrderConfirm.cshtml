@@ -1,0 +1,31 @@
+﻿@model Nop.Plugin.Payments.Iyzico.Models.OpcCallbackConfirmModel
+@{
+    Layout = "";
+}
+<!doctype html>
+<html lang="en">
+<head>
+    <title>Loading Page</title>
+</head>
+<body>
+    <p>Loading Page ...</p>
+    @if (!string.IsNullOrEmpty(Model.Warnings))
+    {
+        <script type="text/javascript">
+            parent.OpcCallbackConfirm({
+                success: false,
+                errorMessages: @Html.Raw(Model.Warnings)
+            });
+        </script>
+    }
+    else
+    {
+        <script>
+            parent.OpcCallbackConfirm({
+                success: true,
+                successUrl: "@Model.SuccessUrl"
+            });
+        </script>
+    }
+</body>
+</html>

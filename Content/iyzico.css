@@ -457,3 +457,35 @@ th {
         border-bottom: 0;
       }
 }
+
+/* modal css */
+
+.modal {
+  opacity: 0;
+  visibility: hidden;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.6);
+  transition: opacity 0.7s ease-in-out, visiblity 0.7s ease-in-out;
+  z-index: 9999;
+}
+
+  .modal.show {
+    opacity: 1;
+    visibility: visible;
+  }
+
+.modal-container {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: #333333;
+  background: #ffffff;
+  width: 600px;
+  height: 600px;
+  text-align: center;
+}

@@ -34,6 +34,7 @@
         private readonly ILanguageService _languageService;
         private readonly IRepository<LocaleStringResource> _lsrRepository;
         private readonly IStaticCacheManager _staticCacheManager;
+        private readonly OrderSettings _orderSettings;
         private readonly IyzicoPaymentObjectContext _objectContext;
 
         #endregion
@@ -48,7 +49,8 @@
             WidgetSettings widgetSettings,
             ILanguageService languageService,
             IRepository<LocaleStringResource> lsrRepository,
-            IStaticCacheManager staticCacheManager, 
+            IStaticCacheManager staticCacheManager,
+            OrderSettings orderSettings,
             IyzicoPaymentObjectContext objectContext)
         {
             _settingService = settingService;
@@ -61,6 +63,7 @@
             _languageService = languageService;
             _lsrRepository = lsrRepository;
             _staticCacheManager = staticCacheManager;
+            _orderSettings = orderSettings;
             _objectContext = objectContext;
         }
         #endregion
@@ -164,6 +167,9 @@
         /// </summary>
         public string GetPublicViewComponentName()
         {
+            if (_orderSettings.OnePageCheckoutEnabled)
+                return IyzicoDefaults.OPC_PAYMENT_INFO_VIEW_COMPONENT_NAME;
+
             return IyzicoDefaults.PAYMENT_INFO_VIEW_COMPONENT_NAME;
         }
 

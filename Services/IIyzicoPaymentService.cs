@@ -89,6 +89,13 @@
         /// <returns>Value</returns>
         T GetCheckoutCookie<T>(string key);
 
+        /// <summary>
+        /// Generates a URL with an absolute path for the specified routeName.
+        /// </summary>
+        /// <param name="routeName">The name of the route that is used to generate URL.</param>
+        /// <returns>The generated URL.</returns>
+        string GetRouteUrl(string routeName);
+
         #endregion
     }
 }

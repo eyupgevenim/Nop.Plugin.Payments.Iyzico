@@ -1,0 +1,19 @@
+﻿@model Nop.Plugin.Payments.Iyzico.Models.ThreedsCallbackResource
+@{
+    Layout = "";
+}
+<!doctype html>
+<html lang="en">
+<head><title>Loading Page</title></head>
+<body>
+    <form id="threeds_opc_callback_form" asp-route="@IyzicoDefaults.OpcOrderConfirmRouteName" method="post">
+        <input asp-for="Status" type="hidden" />
+        <input asp-for="PaymentId" type="hidden" />
+        <input asp-for="ConversationId" type="hidden" />
+        <input asp-for="ConversationData" type="hidden" />
+        <input asp-for="MdStatus" type="hidden" />
+        <input name="nextstep" type="hidden" />
+    </form>
+    <script type="text/javascript">document.getElementById("threeds_opc_callback_form").submit();</script>
+</body>
+</html>
