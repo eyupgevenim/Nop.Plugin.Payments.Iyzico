@@ -30,6 +30,15 @@
             endpointRouteBuilder.MapControllerRoute(IyzicoDefaults.OrderConfirmRouteName, "Iyzico/OrderConfirm",
                 new { controller = "IyzicoPayment", action = "OrderConfirm" });
 
+            endpointRouteBuilder.MapControllerRoute(IyzicoDefaults.OpcCallbackConfirmRouteName, "Iyzico/OpcCallbackConfirm",
+                new { controller = "IyzicoPayment", action = "OpcCallbackConfirm" });
+
+            endpointRouteBuilder.MapControllerRoute(IyzicoDefaults.OpcOrderConfirmRouteName, "Iyzico/OpcOrderConfirm",
+                new { controller = "IyzicoPayment", action = "OpcOrderConfirm" });
+
+            endpointRouteBuilder.MapControllerRoute(IyzicoDefaults.OpcSavePaymentInfoRouteName, "Iyzico/OpcSavePaymentInfo",
+                new { controller = "IyzicoPayment", action = "OpcSavePaymentInfo" });
+
             endpointRouteBuilder.MapControllerRoute(IyzicoDefaults.GetInstallmentRouteName, "Iyzico/GetInstallment",
                 new { controller = "IyzicoPayment", action = "GetInstallment" });
         }

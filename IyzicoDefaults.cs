@@ -37,6 +37,21 @@
         public static string OrderConfirmRouteName => "Plugin.Payments.Iyzico.OrderConfirm";
 
         /// <summary>
+        /// Gets the get OpcCallbackConfirm route name
+        /// </summary>
+        public static string OpcCallbackConfirmRouteName => "Plugin.Payments.Iyzico.OpcCallbackConfirm";
+
+        /// <summary>
+        /// Gets the get OpcOrderConfirm route name
+        /// </summary>
+        public static string OpcOrderConfirmRouteName => "Plugin.Payments.Iyzico.OpcOrderConfirm";
+
+        /// <summary>
+        /// Gets the get OpcSavePaymentInfo route name
+        /// </summary>
+        public static string OpcSavePaymentInfoRouteName => "Plugin.Payments.Iyzico.OpcSavePaymentInfo";
+
+        /// <summary>
         /// Gets the get installment route name
         /// </summary>
         public static string GetInstallmentRouteName => "Plugin.Payments.Iyzico.GetInstallment";
@@ -54,6 +69,11 @@
         /// Gets a name of the view component to display payment info in public store
         /// </summary>
         public const string PAYMENT_INFO_VIEW_COMPONENT_NAME = "IyzicoPaymentInfo";
+
+        /// <summary>
+        /// Gets a name of the view component to display one page checkout(opc) payment info in public store
+        /// </summary>
+        public const string OPC_PAYMENT_INFO_VIEW_COMPONENT_NAME = "IyzicoOpcPaymentInfo";
 
         /// <summary>
         /// Installment key

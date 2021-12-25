@@ -25,6 +25,7 @@
         private readonly IActionContextAccessor _actionContextAccessor;
         private readonly PaymentSettings _paymentSettings;
         private readonly WidgetSettings _widgetSettings;
+        private readonly OrderSettings _orderSettings;
         private readonly ILanguageService _languageService;
 
         #endregion
@@ -36,7 +37,8 @@
             IUrlHelperFactory urlHelperFactory,
             IActionContextAccessor actionContextAccessor,
             PaymentSettings paymentSettings,
-            WidgetSettings widgetSettings, 
+            WidgetSettings widgetSettings,
+            OrderSettings orderSettings,
             ILanguageService languageService)
         {
             _settingService = settingService;
@@ -46,6 +48,7 @@
             _actionContextAccessor = actionContextAccessor;
             _paymentSettings = paymentSettings;
             _widgetSettings = widgetSettings;
+            _orderSettings = orderSettings;
             _languageService = languageService;
         }
         #endregion
@@ -149,6 +152,9 @@
         /// </summary>
         public string GetPublicViewComponentName()
         {
+            if (_orderSettings.OnePageCheckoutEnabled)
+                return IyzicoDefaults.OPC_PAYMENT_INFO_VIEW_COMPONENT_NAME;
+
             return IyzicoDefaults.PAYMENT_INFO_VIEW_COMPONENT_NAME;
         }
 

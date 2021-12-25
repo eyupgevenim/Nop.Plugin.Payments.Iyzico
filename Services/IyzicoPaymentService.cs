@@ -61,6 +61,7 @@
         private readonly IRepository<IyzicoPaymentRefund> _iyzicoPaymentRefundRepository;
         private readonly IActionContextAccessor _actionContextAccessor;
         private readonly IUrlHelperFactory _urlHelperFactory;
+        private readonly OrderSettings _orderSettings;
         #endregion
 
         #region Ctor
@@ -88,7 +89,8 @@
             IRepository<IyzicoPaymentItem> iyzicoPaymentItemRepository,
             IRepository<IyzicoPaymentRefund> iyzicoPaymentRefundRepository,
             IActionContextAccessor actionContextAccessor,
-            IUrlHelperFactory urlHelperFactory)
+            IUrlHelperFactory urlHelperFactory, 
+            OrderSettings orderSettings)
         {
             _customerService = customerService;
             _addressService = addressService;
@@ -115,6 +117,7 @@
             _iyzicoPaymentRefundRepository = iyzicoPaymentRefundRepository;
             _actionContextAccessor = actionContextAccessor;
             _urlHelperFactory = urlHelperFactory;
+            _orderSettings = orderSettings;
         }
         #endregion
 
@@ -358,7 +361,10 @@
             var processPaymentResult = new IyzicoProcessPaymentResult();
 
             var createPaymentRequest =  GetCreatePaymentRequest(processPaymentRequest);
-            var callbackConfirmRouteValue = _urlHelperFactory.GetUrlHelper(_actionContextAccessor.ActionContext).RouteUrl(IyzicoDefaults.CallbackConfirmRouteName);
+            var callbackConfirmRouteValue = _orderSettings.OnePageCheckoutEnabled
+                ? GetRouteUrl(IyzicoDefaults.OpcCallbackConfirmRouteName)
+                : GetRouteUrl(IyzicoDefaults.CallbackConfirmRouteName);
+
             createPaymentRequest.CallbackUrl = $"{GetBaseUrl()}{callbackConfirmRouteValue}";
 
             var options = IyzicoHelper.GetIyzicoOptions(_iyzicoSettings);
@@ -484,6 +490,16 @@
             _httpContextAccessor.HttpContext.Response.Cookies.Delete(key);
 
             return JsonConvert.DeserializeObject<T>(value);
+        }
+
+        /// <summary>
+        /// Generates a URL with an absolute path for the specified routeName.
+        /// </summary>
+        /// <param name="routeName">The name of the route that is used to generate URL.</param>
+        /// <returns>The generated URL.</returns>
+        public virtual string GetRouteUrl(string routeName)
+        {
+            return _urlHelperFactory.GetUrlHelper(_actionContextAccessor.ActionContext).RouteUrl(routeName);
         }
 
         #endregion
