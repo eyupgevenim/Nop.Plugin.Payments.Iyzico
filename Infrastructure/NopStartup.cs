@@ -31,6 +31,12 @@
             if (!dataSettings?.IsValid ?? true)
                 return;
 
+            //application.Use(async (context, next) =>
+            //{
+            //    context.Response.Headers.Add("Content-Security-Policy", $"frame-src * data:;");
+            //    await next();
+            //});
+
             ApplyMigration(application);
         }
 

@@ -1,0 +1,291 @@
+﻿@using Nop.Core
+@inject IWebHelper webHelper
+@model Nop.Plugin.Payments.Iyzico.Models.PaymentInfoModel
+@{
+    Layout = "";
+    var storeLocation = webHelper.GetStoreLocation();
+}
+
+<link href="/Plugins/Payments.Iyzico/Content/iyzico.css" rel="stylesheet">
+
+<div class="message-error">
+    @if (Model.Warnings.Any())
+    {
+        <ul>
+            @foreach (var warning in Model.Warnings)
+            {
+                <li>@warning</li>
+            }
+        </ul>
+    }
+</div>
+
+<table class="iyzicoPaymentInfo" width="100%" cellspacing="2" cellpadding="1" border="0">
+    <tr>
+        <td>
+            <label asp-for="CardholderName">@T("Plugins.Payments.Iyzico.CardHolderName"):</label>
+        </td>
+        <td>
+            <input type="text" asp-for="CardholderName" style="width: 165px;" autocomplete="off"
+                   onkeypress="return (event.charCode >= 65 && event.charCode <= 90) || event.charCode == 32 || (event.charCode >= 97 && event.charCode <= 122)
+                    || event.charCode == 304 || event.charCode == 350 || event.charCode == 199 || event.charCode == 220 || event.charCode == 214 || event.charCode == 286
+                    || event.charCode == 287 || event.charCode == 351 || event.charCode == 246 || event.charCode == 252 || event.charCode == 305 || event.charCode == 231" />
+            <span asp-validation-for="CardholderName"></span>
+        </td>
+    </tr>
+    <tr>
+        <td>
+            <label asp-for="CardNumber">@T("Plugins.Payments.Iyzico.CardNumber"):</label>
+        </td>
+        <td>
+            <input type="text" asp-for="CardNumber" style="width: 165px;" autocomplete="off" maxlength="16" onkeypress="return event.charCode >= 48 && event.charCode <= 57" />
+            <span asp-validation-for="CardNumber"></span>
+        </td>
+    </tr>
+    <tr>
+        <td>
+            <label asp-for="ExpireMonth">@T("Plugins.Payments.Iyzico.ExpirationDate"):</label>
+        </td>
+        <td>
+            <select asp-for="ExpireMonth" asp-items="Model.ExpireMonths"></select>
+            /
+            <select asp-for="ExpireYear" asp-items="Model.ExpireYears"></select>
+        </td>
+    </tr>
+    <tr>
+        <td>
+            <label asp-for="CardCode">@T("Plugins.Payments.Iyzico.CardCode"):</label>
+        </td>
+        <td>
+            <input type="text" asp-for="CardCode" style="width: 60px;" autocomplete="off" maxlength="3" onkeypress="return event.charCode >= 48 && event.charCode <= 57" />
+            <span asp-validation-for="CardCode"></span>
+        </td>
+    </tr>
+</table>
+
+<div class="form-group p-r-10-sm p-l-10-sm">
+    <p class="col-xs-12 color-dark f-sm p-l-0-sm">@T("Plugins.Payments.Iyzico.Installments")</p>
+    <div class="col-xs-12  p-r-0-sm p-l-0-sm">
+        <div class="payment-options-wrapper">
+            <div class="empty-installment bg-light-gray p-r-30 p-l-30 v-center text-center" style="text-align: center;">
+                <p>@T("Plugins.Payments.Iyzico.EmptyInstalment")</p>
+            </div>
+            <table id="intalmentTable" class="table payment-options-table" cellpadding="20" style="text-align: left;"></table>
+            <p id="warninginstallment" class="login-message-error" hidden>@T("Plugins.Payments.Iyzico.InstallmentRequired")</p>
+        </div>
+    </div>
+</div>
+
+<script>
+
+    function IyzicoJs(options) {
+        var iyzicoJs = this;
+        var oldvalue = "";
+
+        var option = {
+            enable3DSecure: false,
+            installmentUrl: "",
+            InstallmentNumberTitle: "",
+            priceTitle:"",
+            totalPriceTitle: ""
+        };
+
+        (function init() {
+            $.extend(option, options);
+            events();
+            $("#checkout-step-payment-info .validation-summary-errors").hide();
+        })();
+
+        function events() {
+            $("#CardNumber").bind("keyup", cardNumberOnKeyup);
+
+            $(".payment-info-next-step-button").prop("onclick", null).off("click");
+            $(".payment-info-next-step-button").click(paymentInfoNextStepButtonOnClick);
+        }
+
+        function cardNumberOnKeyup (){
+            var value = $('#CardNumber').val();
+            if (value.length >= 6) {
+                if (value != oldvalue) {
+                    getInstallment(value.substring(0, 6));
+                }
+            } else {
+                $("#intalmentTable").hide();
+                $(".payment-options-wrapper .empty-installment").show();
+            }
+            oldvalue = value;
+        }
+
+        function paymentInfoNextStepButtonOnClick(event) {
+            event.preventDefault();
+            iyzicoJs.paymentInfo.save();
+        }
+
+        function getInstallment(value) {
+            $.ajax({
+                cache: false,
+                type: "POST",
+                url: option.installmentUrl,
+                datatype: "json",
+                data: { binNumber: value },
+                beforeSend: function () { },
+                success: function (data) {
+
+                    var intalmentTable = $("#intalmentTable");
+                    var tableHeader =
+                        $("<tr />")
+                            .append($("<th />", { text: option.InstallmentNumberTitle }))
+                            .append($("<th />", { text: option.priceTitle }))
+                            .append($("<th />", { text: option.totalPriceTitle }));
+                    intalmentTable.html(tableHeader);
+
+                    $.each(data, function (index, item) {
+                        var row = $("<tr />", { id: "tr-" + item.InstallmentNumber })
+                            .append(
+                                $("<td />", {
+                                    html: $("<div />", {
+                                        class: "checkbox-blue-line radiobutton radiobutton-sm",
+                                        html: $("<input />", { id: "radioInstallment-" + item.InstallmentNumber, type: "radio", name: "Installment", val: item.InstallmentNumber })
+                                    }).append(
+                                        $("<label />", { for: "radioInstallment-" + item.InstallmentNumber })
+                                    ).append(
+                                        $("<span />", { class: "label-checkbox", text: item.DisplayName })
+                                    )
+                                })
+                            ).append(
+                                $("<td />", { html: item.Price })
+                            ).append(
+                                $("<td />", { html: item.TotalPrice })
+                            );
+
+                        intalmentTable.append(row);
+                    });
+                    intalmentTable.show();
+
+                    $(".payment-options-wrapper .empty-installment").hide();
+                    $("#radioInstallment-1").attr('checked', 'checked');
+                    $("#radioInstallment-1").closest('tr').addClass('selected');
+                    $("#radioInstallment-1").click();
+                },
+                error: function (xhr, ajaxOptions, thrownError) { }
+            });
+        };
+
+        function OpcCreateThreeDSecure(response) {
+            //NOT: Ifram için "Content-Security-Policy"(CSP)'ye 'frame-src *;' yerine 'frame-src * data:;' ekleyin. (Nop.Web\web.config)
+            var htmlBase64 = response.update_section.html;
+            var $threedsModal = $("<div />", {
+                id: "threeds_modal",
+                class: "modal",
+                html: $("<div />", {
+                    class: "modal-container",
+                    html: $("<iframe />", {
+                        id: "threeds_iframe",
+                        style: "width:100%;height:100%;",
+                        src: "data:text/html;base64," + htmlBase64,
+                        //html: html,
+                    })
+                })
+            });
+
+            $("body").append($threedsModal);
+            $threedsModal.addClass("show");
+            //$threedsModal.removeClass("show");
+
+            return true;
+        }
+
+        iyzicoJs.paymentInfo = {
+            form: false,
+            saveUrl: false,
+
+            init: function (form, saveUrl) {
+                this.form = form;
+                this.saveUrl = saveUrl;
+            },
+
+            save: function () {
+                if (Checkout.loadWaiting !== false) return;
+
+                Checkout.setLoadWaiting('payment-info');
+                $.ajax({
+                    cache: false,
+                    url: this.saveUrl,
+                    data: $(this.form).serialize(),
+                    type: "POST",
+                    success: this.nextStep,
+                    complete: this.resetLoadWaiting,
+                    error: Checkout.ajaxFailure
+                });
+            },
+
+            resetLoadWaiting: function () {
+                Checkout.setLoadWaiting(false);
+            },
+
+            nextStep: function (response) {
+                if (response.error) {
+                    if (typeof response.message === 'string') {
+                        alert(response.message);
+                    } else {
+                        alert(response.message.join("\n"));
+                    }
+
+                    return false;
+                }
+
+                if (response.goto_threeds) {
+                    return OpcCreateThreeDSecure(response);
+                }
+
+                return Checkout.setStepResponse(response);
+            },
+
+            OpcCallbackConfirm: function (options) {
+                if (options.success) {
+                    window.location = options.successUrl;
+                    //location.href = options.redirect;
+                } else {
+                    var ul = $("<ul />");
+                    options.errorMessages.forEach(function (item, index) {
+                        ul.append($("<li />", { html: item }));
+                    });
+                    $(".message-error").html(ul);
+                }
+
+                $("#threeds_modal").remove();
+                //$("#threeds_modal").removeClass("show");
+            }
+        };
+
+        return iyzicoJs;
+    }
+
+    function iyzicoInit() {
+        $(function () {
+            var iyzicoJs = new IyzicoJs({
+                enable3DSecure: @(Model.Enable3DSecure ? "true": "false"),
+                installmentUrl: "@(Url.RouteUrl("Plugin.Payments.Iyzico.GetInstallment"))",
+                InstallmentNumberTitle: '@T("Plugins.Payments.Iyzico.InstallmentNumber")',
+                priceTitle:'@T("Plugins.Payments.Iyzico.Price")',
+                totalPriceTitle:'@T("Plugins.Payments.Iyzico.TotalPrice")'
+            });
+
+            //Override nopCommerce one page checkout PaymentInfo js
+            iyzicoJs.paymentInfo.init('#co-payment-info-form', '@(storeLocation)iyzico/OpcSavePaymentInfo');
+            window.OpcCallbackConfirm = iyzicoJs.paymentInfo.OpcCallbackConfirm;
+
+        });
+    }
+
+    function deferJqueryLoading(method) {
+        if (window.jQuery && typeof $ == 'function') {
+            method();
+        } else {
+            setTimeout(function () { deferJqueryLoading(method) }, 50);
+        }
+    }
+
+    deferJqueryLoading(iyzicoInit);
+
+</script>
