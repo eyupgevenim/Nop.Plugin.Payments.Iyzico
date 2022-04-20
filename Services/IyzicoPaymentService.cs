@@ -699,6 +699,7 @@
         {
             var customer = await _customerService.GetCustomerByIdAsync(customerId);
 
+            var customerEmail = customer.Email;
             var customerName = await _genericAttributeService.GetAttributeAsync<string>(customer, NopCustomerDefaults.FirstNameAttribute);
             var customerSurName = await _genericAttributeService.GetAttributeAsync<string>(customer, NopCustomerDefaults.LastNameAttribute);
             var customerIdentityNumber = await _genericAttributeService.GetAttributeAsync<string>(customer, "IdentityNumber");
@@ -714,12 +715,32 @@
             if (country == null)
                 throw new NopException("Billing address country not set");
 
+            if (string.IsNullOrWhiteSpace(customerName))
+            {
+                customerName = billingAddress.FirstName;
+            }
+
+            if (string.IsNullOrWhiteSpace(customerSurName))
+            {
+                customerSurName = billingAddress.LastName;
+            }
+
+            if (string.IsNullOrWhiteSpace(customerEmail))
+            {
+                customerEmail = billingAddress.Email;
+            }
+
+            if (string.IsNullOrWhiteSpace(customerGsmNumber))
+            {
+                customerGsmNumber = billingAddress.PhoneNumber;
+            }
+
             return new Buyer
             {
                 Id = customer.CustomerGuid.ToString(),
                 Name = customerName,
                 Surname = customerSurName,
-                Email = customer.Email,
+                Email = customerEmail,
                 IdentityNumber = customerIdentityNumber,
                 RegistrationAddress = billingAddress.Address1,
                 Ip = customer.LastIpAddress,
