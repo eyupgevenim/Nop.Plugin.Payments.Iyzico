@@ -1,6 +1,7 @@
 ﻿# nopCommerce Iyzico 3D Secure / Sanal POS plugin
    
  Desteklediği Versiyonlar / Supported Versions : 
+[4.50](https://github.com/eyupgevenim/Nop.Plugin.Payments.Iyzico/tree/nopCommerce-4.50),
 <b>[4.40](https://github.com/eyupgevenim/Nop.Plugin.Payments.Iyzico/tree/nopCommerce-4.40)</b>, 
 [4.30](https://github.com/eyupgevenim/Nop.Plugin.Payments.Iyzico/tree/nopCommerce-4.30), 
 [4.20](https://github.com/eyupgevenim/Nop.Plugin.Payments.Iyzico/tree/nopCommerce-4.20)
