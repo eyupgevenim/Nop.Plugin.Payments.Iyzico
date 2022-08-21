@@ -27,6 +27,8 @@
         {
             //prepare payment model
             var paymentInfoModel = GetPaymentInfoModel();
+            RemovePaymentInfoModel();
+
             paymentInfoModel.Enable3DSecure = _iyzicoSettings.Enable3DSecure;
 
             var currentYear = DateTime.Now.Year;
@@ -39,23 +41,11 @@
             var expireMonths = Enumerable.Range(1, 12).Select(month => new SelectListItem { Text = $"{month:D2}", Value = $"{month}" });
             paymentInfoModel.ExpireMonths.AddRange(expireMonths);
 
-            return View("~/Plugins/Payments.Iyzico/Views/Iyzico/PaymentInfo.cshtml", paymentInfoModel);
+            return View($"{IyzicoDefaults.IYZICO_VIEWS_PATH}/PaymentInfo.cshtml", paymentInfoModel);
         }
 
-        private PaymentInfoModel GetPaymentInfoModel()
-        {
-            var paymentInfoModel = HttpContext.Session.Get<PaymentInfoModel>(IyzicoDefaults.PAYMENT_INFO_MODEL_SESSION);
-            if (paymentInfoModel == null)
-            {
-                paymentInfoModel = new PaymentInfoModel();
-            }
-            else
-            {
-                HttpContext.Session.Remove(IyzicoDefaults.PAYMENT_INFO_MODEL_SESSION);
-            }
-
-            return paymentInfoModel;
-        }
+        private PaymentInfoModel GetPaymentInfoModel() => HttpContext.Session.Get<PaymentInfoModel>(IyzicoDefaults.PAYMENT_INFO_MODEL_SESSION) ?? new PaymentInfoModel();
+        private void RemovePaymentInfoModel() => HttpContext.Session.Remove(IyzicoDefaults.PAYMENT_INFO_MODEL_SESSION);
 
     }
 }

@@ -6,6 +6,18 @@
 
     public static class IyzicoHelper
     {
+        private static readonly List<string> _currencyCodes = new List<string>
+        {
+            $"{Currency.TRY}",
+            $"{Currency.EUR}",
+            $"{Currency.USD}",
+            $"{Currency.GBP}",
+            $"{Currency.IRR}",
+            $"{Currency.NOK}",
+            $"{Currency.RUB}",
+            $"{Currency.CHF}"
+        };
+
         public static Options GetIyzicoOptions(IyzicoSettings iyzicoPaymentSettings)
         {
             return new Options
@@ -21,25 +33,12 @@
             if (string.IsNullOrEmpty(currencyCode))
                 return string.Empty;
 
-            var currencyCodes = new List<string>
-            {
-                $"{Currency.TRY}",
-                $"{Currency.EUR}",
-                $"{Currency.USD}",
-                $"{Currency.GBP}",
-                $"{Currency.IRR}",
-                $"{Currency.NOK}",
-                $"{Currency.RUB}",
-                $"{Currency.CHF}"
-            };
-
             var currencyCodeToUpper = currencyCode.ToUpper();
-            if (currencyCodes.Contains(currencyCodeToUpper))
+            if (_currencyCodes.Contains(currencyCodeToUpper))
                 return currencyCodeToUpper;
 
             return $"{Currency.TRY}";
         }
-
 
         public static string GetLocale(string uniqueSeoCode)
         {

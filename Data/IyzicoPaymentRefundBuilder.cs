@@ -18,7 +18,12 @@
         public override void MapEntity(CreateTableExpressionBuilder table)
         {
             table
+
+                ///nopCommerce - release --> 4.50.3, 4.50.2, 4.50.1, 4.50.0 için BUG'lı ilgli issue'daki gibi düzeltebilirsiniz....
+                ///https://github.com/nopSolutions/nopCommerce/issues/6139
+                ///https://github.com/nopSolutions/nopCommerce/pull/6140/files
                 .InSchema(IyzicoDefaults.DB_PAYMENT_SCHEMA)
+
                 //map the primary key (not necessary if it is Id field)
                 .WithColumn(nameof(IyzicoPaymentRefund.Id)).AsInt32().Identity().PrimaryKey()
                 //map the additional properties as foreign keys

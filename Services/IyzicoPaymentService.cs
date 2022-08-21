@@ -47,10 +47,8 @@
         private readonly ICategoryService _categoryService;
         private readonly IShoppingCartService _shoppingCartService;
         private readonly IPriceCalculationService _priceCalculationService;
-        private readonly IPaymentService _paymentService;
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly IOrderTotalCalculationService _orderTotalCalculationService;
-        private readonly IOrderService _orderService;
         private readonly IWorkContext _workContext;
         private readonly ITaxService _taxService;
         private readonly ICurrencyService _currencyService;
@@ -76,10 +74,8 @@
             ICategoryService categoryService,
             IShoppingCartService shoppingCartService,
             IPriceCalculationService priceCalculationService,
-            IPaymentService paymentService,
             IHttpContextAccessor httpContextAccessor,
             IOrderTotalCalculationService orderTotalCalculationService,
-            IOrderService orderService,
             IWorkContext workContext,
             ITaxService taxService,
             ICurrencyService currencyService,
@@ -103,10 +99,8 @@
             _categoryService = categoryService;
             _shoppingCartService = shoppingCartService;
             _priceCalculationService = priceCalculationService;
-            _paymentService = paymentService;
             _httpContextAccessor = httpContextAccessor;
             _orderTotalCalculationService = orderTotalCalculationService;
-            _orderService = orderService;
             _workContext = workContext;
             _taxService = taxService;
             _currencyService = currencyService;
@@ -161,9 +155,9 @@
                     var installmentTotalPrice = installmentInfo.InstallmentDetails.FirstOrDefault()
                         .InstallmentPrices.FirstOrDefault(x => x.InstallmentNumber == formInstallment).TotalPrice;
 
-                    var fee = DecimalParse(installmentTotalPrice) - (shoppingCartTotal ?? 0);
+                    var additionalFee = DecimalParse(installmentTotalPrice) - (shoppingCartTotal ?? 0);
 
-                    return await _paymentService.CalculateAdditionalFeeAsync(cart, fee, false);
+                    return await _orderTotalCalculationService.CalculatePaymentAdditionalFeeAsync(cart, additionalFee, false);
                 }
             }
 
@@ -699,11 +693,10 @@
         {
             var customer = await _customerService.GetCustomerByIdAsync(customerId);
 
+            var customerEmail = customer.Email;
             var customerName = await _genericAttributeService.GetAttributeAsync<string>(customer, NopCustomerDefaults.FirstNameAttribute);
             var customerSurName = await _genericAttributeService.GetAttributeAsync<string>(customer, NopCustomerDefaults.LastNameAttribute);
             var customerIdentityNumber = await _genericAttributeService.GetAttributeAsync<string>(customer, "IdentityNumber");
-            if (string.IsNullOrEmpty(customerIdentityNumber))
-                customerIdentityNumber = "11111111111";
             var customerGsmNumber = await _genericAttributeService.GetAttributeAsync<string>(customer, NopCustomerDefaults.PhoneAttribute);
 
             var billingAddress = await _addressService.GetAddressByIdAsync(customer.BillingAddressId ?? 0);
@@ -714,12 +707,37 @@
             if (country == null)
                 throw new NopException("Billing address country not set");
 
+            if (string.IsNullOrWhiteSpace(customerEmail))
+            {
+                customerEmail = billingAddress.Email ?? string.Empty;
+            }
+
+            if (string.IsNullOrWhiteSpace(customerName))
+            {
+                customerName = billingAddress.FirstName ?? string.Empty;
+            }
+
+            if (string.IsNullOrWhiteSpace(customerSurName))
+            {
+                customerSurName = billingAddress.LastName ?? string.Empty;
+            }
+
+            if (string.IsNullOrEmpty(customerIdentityNumber))
+            {
+                customerIdentityNumber = "11111111111";
+            }
+
+            if (string.IsNullOrWhiteSpace(customerGsmNumber))
+            {
+                customerGsmNumber = billingAddress.PhoneNumber ?? string.Empty;
+            }
+
             return new Buyer
             {
                 Id = customer.CustomerGuid.ToString(),
                 Name = customerName,
                 Surname = customerSurName,
-                Email = customer.Email,
+                Email = customerEmail,
                 IdentityNumber = customerIdentityNumber,
                 RegistrationAddress = billingAddress.Address1,
                 Ip = customer.LastIpAddress,

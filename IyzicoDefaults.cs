@@ -85,6 +85,16 @@
         /// </summary>
         public const string DB_PAYMENT_SCHEMA = "Payment";
 
+        /// <summary>
+        /// Iyzico views path
+        /// </summary>
+        public const string IYZICO_VIEWS_PATH = "~/Plugins/Payments.Iyzico/Views/Iyzico";
+
+        /// <summary>
+        /// Iyzico settings views path
+        /// </summary>
+        public const string IYZICO_CONFIGURE_VIEWS_PATH = "~/Plugins/Payments.Iyzico/Views/Configure";
+
         #endregion
 
     }

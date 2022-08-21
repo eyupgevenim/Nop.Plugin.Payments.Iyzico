@@ -1,7 +1,8 @@
 ﻿# nopCommerce Iyzico 3D Secure / Sanal POS plugin
    
  Desteklediği Versiyonlar / Supported Versions : 
-<b>[4.40](https://github.com/eyupgevenim/Nop.Plugin.Payments.Iyzico/tree/nopCommerce-4.40)</b>, 
+<b>[4.50](https://github.com/eyupgevenim/Nop.Plugin.Payments.Iyzico/tree/nopCommerce-4.50)</b>, 
+[4.40](https://github.com/eyupgevenim/Nop.Plugin.Payments.Iyzico/tree/nopCommerce-4.40), 
 [4.30](https://github.com/eyupgevenim/Nop.Plugin.Payments.Iyzico/tree/nopCommerce-4.30), 
 [4.20](https://github.com/eyupgevenim/Nop.Plugin.Payments.Iyzico/tree/nopCommerce-4.20)
 
@@ -67,6 +68,15 @@ Eklentilerin nasıl kurulacağı hakkında daha fazla bilgiyi [burada](https://d
 - [iyzipay-dotnet github](https://github.com/iyzico/iyzipay-dotnet)
 
 
+## Not ✘
+
+  nopCommerce-release[4.50.3, 4.50.2, 4.50.1, 4.50.0] DB schema için bug bulunuyor. 
+  Eğer nopCommerce bu versiyonlarını kullanacaksanız issue daki gibi düzeltmelisiniz.
+  Bug: https://github.com/nopSolutions/nopCommerce/issues/6139
+  Fix: https://github.com/nopSolutions/nopCommerce/pull/6140/files
+
+
+
 <br />
 <br />
 
@@ -120,7 +130,12 @@ Please find more information about how to install plugins [here](https://docs.no
 - [iyzipay-dotnet github](https://github.com/iyzico/iyzipay-dotnet)
 
 
+## Note ✘
 
+nopCommerce-release[4.50.3, 4.50.2, 4.50.1, 4.50.0] There is a bug for the DB schema.
+If you are going to use these versions of nopCommerce, you should fix it as in the issue.
+Bug: https://github.com/nopSolutions/nopCommerce/issues/6139
+Fix: https://github.com/nopSolutions/nopCommerce/pull/6140/files
 
 
 

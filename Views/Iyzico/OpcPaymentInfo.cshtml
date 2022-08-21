@@ -1,12 +1,13 @@
 ﻿@using Nop.Core
+@using Nop.Web.Framework.TagHelpers.Shared
 @inject IWebHelper webHelper
 @model Nop.Plugin.Payments.Iyzico.Models.PaymentInfoModel
 @{
     Layout = "";
     var storeLocation = webHelper.GetStoreLocation();
+    NopHtml.AddCssFileParts("~/Plugins/Payments.Iyzico/Content/iyzico.css");
 }
-
-<link href="/Plugins/Payments.Iyzico/Content/iyzico.css" rel="stylesheet">
+@NopHtml.GenerateCssFiles()
 
 <div class="message-error">
     @if (Model.Warnings.Any())

@@ -172,7 +172,7 @@
                 return RedirectToRoute("CheckoutPaymentInfo");
             }
 
-            return View("~/Plugins/Payments.Iyzico/Views/Iyzico/CallbackConfirm.cshtml", threedsCallbackResource);
+            return View($"{IyzicoDefaults.IYZICO_VIEWS_PATH}/CallbackConfirm.cshtml", threedsCallbackResource);
         }
 
         /// <summary>
@@ -399,10 +399,10 @@
             if (warnings.Any())
             {
                 var model = new OpcCallbackConfirmModel { Warnings = warnings };
-                return View("~/Plugins/Payments.Iyzico/Views/Iyzico/OpcOrderConfirm.cshtml", model);
+                return View($"{IyzicoDefaults.IYZICO_VIEWS_PATH}/OpcOrderConfirm.cshtml", model);
             }
 
-            return View("~/Plugins/Payments.Iyzico/Views/Iyzico/OpcCallbackConfirm.cshtml", threedsCallbackResource);
+            return View($"{IyzicoDefaults.IYZICO_VIEWS_PATH}/OpcCallbackConfirm.cshtml", threedsCallbackResource);
         }
 
         /// <summary>
@@ -480,7 +480,7 @@
                     {
                         //payment method could be null if order total is 0
                         //success
-                        return View("~/Plugins/Payments.Iyzico/Views/Iyzico/OpcOrderConfirm.cshtml", model);
+                        return View($"{IyzicoDefaults.IYZICO_VIEWS_PATH}/OpcOrderConfirm.cshtml", model);
                     }
 
                     if (paymentMethod.PaymentMethodType == PaymentMethodType.Redirection)
@@ -490,13 +490,13 @@
 
                         //redirect
                         model.SuccessUrl = $"{_webHelper.GetStoreLocation()}checkout/OpcCompleteRedirectionPayment";
-                        return View("~/Plugins/Payments.Iyzico/Views/Iyzico/OpcOrderConfirm.cshtml", model);
+                        return View($"{IyzicoDefaults.IYZICO_VIEWS_PATH}/OpcOrderConfirm.cshtml", model);
                     }
 
                     await _paymentService.PostProcessPaymentAsync(postProcessPaymentRequest);
 
                     //success
-                    return View("~/Plugins/Payments.Iyzico/Views/Iyzico/OpcOrderConfirm.cshtml", model);
+                    return View($"{IyzicoDefaults.IYZICO_VIEWS_PATH}/OpcOrderConfirm.cshtml", model);
                 }
 
                 //error
@@ -511,7 +511,7 @@
                 model.Warnings.Add(exc.Message);
             }
 
-            return View("~/Plugins/Payments.Iyzico/Views/Iyzico/OpcOrderConfirm.cshtml", model);
+            return View($"{IyzicoDefaults.IYZICO_VIEWS_PATH}/OpcOrderConfirm.cshtml", model);
         }
 
         #endregion
@@ -526,8 +526,12 @@
             var validationResult = validator.Validate(threedsCallbackResource);
 
             if (!validationResult.IsValid)
+            {
                 foreach (var error in validationResult.Errors)
+                {
                     warnings.Add(error.ErrorMessage);
+                }
+            }
 
             return warnings;
         }

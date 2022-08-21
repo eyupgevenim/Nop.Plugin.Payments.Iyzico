@@ -14,6 +14,7 @@
         <input asp-for="MdStatus" type="hidden" />
         <input name="nextstep" type="hidden" />
     </form>
-    <script type="text/javascript">document.getElementById("threeds_opc_callback_form").submit();</script>
+    <script type="text/javascript" asp-location="Footer">document.getElementById("threeds_opc_callback_form").submit();</script>
+    @NopHtml.GenerateInlineScripts(ResourceLocation.Footer)
 </body>
 </html>

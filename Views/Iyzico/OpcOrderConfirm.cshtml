@@ -11,7 +11,7 @@
     <p>Loading Page ...</p>
     @if (Model.Warnings.Any())
     {
-        <script type="text/javascript">
+        <script type="text/javascript" asp-location="Footer">
             parent.OpcCallbackConfirm({
                 success: false,
                 errorMessages: @Html.Raw(Model.GetWarningsAsJson())
@@ -20,12 +20,13 @@
     }
     else
     {
-        <script>
+        <script asp-location="Footer">
             parent.OpcCallbackConfirm({
                 success: true,
                 successUrl: "@Model.SuccessUrl"
             });
         </script>
     }
+    @NopHtml.GenerateInlineScripts(ResourceLocation.Footer)
 </body>
 </html>

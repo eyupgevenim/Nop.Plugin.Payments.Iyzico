@@ -57,7 +57,7 @@
                 Enable3DSecure = _iyzicoSettings.Enable3DSecure
             };
 
-            return View("~/Plugins/Payments.Iyzico/Views/Configure/Configure.cshtml", model);
+            return View($"{IyzicoDefaults.IYZICO_CONFIGURE_VIEWS_PATH}/Configure.cshtml", model);
         }
 
         [AutoValidateAntiforgeryToken]
@@ -85,7 +85,7 @@
 
             await _settingService.SaveSettingAsync(_iyzicoSettings);
             _notificationService.SuccessNotification(await _localizationService.GetResourceAsync("Admin.Plugins.Saved"));
-            return View("~/Plugins/Payments.Iyzico/Views/Configure/Configure.cshtml", model);
+            return View($"{IyzicoDefaults.IYZICO_CONFIGURE_VIEWS_PATH}/Configure.cshtml", model);
         }
         
         #endregion

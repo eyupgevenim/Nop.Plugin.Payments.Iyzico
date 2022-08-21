@@ -3,7 +3,7 @@
   "FriendlyName": "Credit Card 3D",
   "SystemName": "Payments.Iyzico",
   "Version": "2.00",
-  "SupportedVersions": [ "4.40" ],
+  "SupportedVersions": [ "4.50" ],
   "Author": "Eyup Gevenim",
   "DisplayOrder": 1,
   "FileName": "Nop.Plugin.Payments.Iyzico.dll",

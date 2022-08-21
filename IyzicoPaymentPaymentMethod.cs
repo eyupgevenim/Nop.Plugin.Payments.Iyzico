@@ -292,7 +292,7 @@
 
             #region locales
 
-            await _localizationService.AddLocaleResourceAsync(new Dictionary<string, string>
+            await _localizationService.AddOrUpdateLocaleResourceAsync(new Dictionary<string, string>
             {
                 ["Plugins.Payments.Iyzico.Admin.Fields.ApiKey"] = "Iyzico API Key",
                 ["Plugins.Payments.Iyzico.Admin.Fields.ApiKey.Hint"] = "Enter Iyzico API Key.",
@@ -325,7 +325,7 @@
             var enLanguage = allLanguages.FirstOrDefault(x => x.LanguageCulture == "en-US");
             if (enLanguage != null)
             {
-                await _localizationService.AddLocaleResourceAsync(new Dictionary<string, string>
+                await _localizationService.AddOrUpdateLocaleResourceAsync(new Dictionary<string, string>
                 {
                     ["Plugins.Payments.Iyzico.Installment"] = "Installment",
                     ["Plugins.Payments.Iyzico.Installments"] = "Installments",
@@ -402,7 +402,7 @@
             var trLanguage = allLanguages.FirstOrDefault(x => x.LanguageCulture == "tr-TR");
             if (trLanguage != null)
             {
-                await _localizationService.AddLocaleResourceAsync(new Dictionary<string, string>
+                await _localizationService.AddOrUpdateLocaleResourceAsync(new Dictionary<string, string>
                 {
                     ["Plugins.Payments.Iyzico.CardHolderName"] = "Kart Sahibi",
                     ["Plugins.Payments.Iyzico.CardNumber"] = "Kart Numarası",
