@@ -71,8 +71,8 @@ Eklentilerin nasıl kurulacağı hakkında daha fazla bilgiyi [burada](https://d
 ## Not ✘
 
   nopCommerce-release[4.50.3, 4.50.2, 4.50.1, 4.50.0] DB schema için bug bulunuyor. 
-  Eğer nopCommerce bu versiyonlarını kullanacaksanız issue daki gibi düzeltmelisiniz.
-  Bug: https://github.com/nopSolutions/nopCommerce/issues/6139
+  Eğer nopCommerce bu versiyonlarını kullanacaksanız issue daki gibi düzeltmelisiniz.  <br />
+  Bug: https://github.com/nopSolutions/nopCommerce/issues/6139   <br />
   Fix: https://github.com/nopSolutions/nopCommerce/pull/6140/files
 
 
@@ -133,8 +133,8 @@ Please find more information about how to install plugins [here](https://docs.no
 ## Note ✘
 
 nopCommerce-release[4.50.3, 4.50.2, 4.50.1, 4.50.0] There is a bug for the DB schema.
-If you are going to use these versions of nopCommerce, you should fix it as in the issue.
-Bug: https://github.com/nopSolutions/nopCommerce/issues/6139
+If you are going to use these versions of nopCommerce, you should fix it as in the issue.  <br />
+Bug: https://github.com/nopSolutions/nopCommerce/issues/6139  <br />
 Fix: https://github.com/nopSolutions/nopCommerce/pull/6140/files
 
 
