@@ -2,6 +2,7 @@
 
 
  Desteklediği Versiyonlar / Supported Versions : 
+[4.50](https://github.com/eyupgevenim/Nop.Plugin.Payments.Iyzico/tree/nopCommerce-4.50),
 [4.40](https://github.com/eyupgevenim/Nop.Plugin.Payments.Iyzico/tree/nopCommerce-4.40), 
 [4.30](https://github.com/eyupgevenim/Nop.Plugin.Payments.Iyzico/tree/nopCommerce-4.30), 
 <b>[4.20](https://github.com/eyupgevenim/Nop.Plugin.Payments.Iyzico/tree/nopCommerce-4.20)</b>
