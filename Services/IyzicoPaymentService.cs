@@ -29,6 +29,7 @@
     using Nop.Services.Common;
     using Nop.Services.Customers;
     using Nop.Services.Directory;
+    using Nop.Services.Discounts;
     using Nop.Services.Localization;
     using Nop.Services.Orders;
     using Nop.Services.Payments;
@@ -61,6 +62,7 @@
         private readonly IActionContextAccessor _actionContextAccessor;
         private readonly IUrlHelperFactory _urlHelperFactory;
         private readonly OrderSettings _orderSettings;
+        private readonly IStoreContext _storeContext;
         #endregion
 
         #region Ctor
@@ -87,7 +89,8 @@
             IRepository<IyzicoPaymentRefund> iyzicoPaymentRefundRepository,
             IActionContextAccessor actionContextAccessor,
             IUrlHelperFactory urlHelperFactory, 
-            OrderSettings orderSettings)
+            OrderSettings orderSettings, 
+            IStoreContext storeContext)
         {
             _customerService = customerService;
             _addressService = addressService;
@@ -113,6 +116,7 @@
             _actionContextAccessor = actionContextAccessor;
             _urlHelperFactory = urlHelperFactory;
             _orderSettings = orderSettings;
+            _storeContext = storeContext;
         }
         #endregion
 
@@ -771,10 +775,16 @@
             var customer = await _customerService.GetCustomerByIdAsync(processPaymentRequest.CustomerId);
             var shoppingCart = await _shoppingCartService.GetShoppingCartAsync(customer, ShoppingCartType.ShoppingCart);
 
+            var (sTotal, dAmount) = await GetDiscountTotalPriceAsync((await _storeContext.GetCurrentStoreAsync()).Id);
             var (shoppingCartTotal, _, _, _, _, _) = await _orderTotalCalculationService.GetShoppingCartTotalAsync(shoppingCart, usePaymentMethodAdditionalFee: false);
 
+            if (dAmount > 0)
+            {
+                shoppingCartTotal += dAmount;
+            }
+            
             if (processPaymentRequest.OrderTotal == 0)
-                processPaymentRequest.OrderTotal = shoppingCartTotal.Value;
+                processPaymentRequest.OrderTotal = sTotal;
 
             var paymentCard = new PaymentCard()
             {
@@ -917,6 +927,17 @@
             query = query.Where(q => q.OrderId == orderId);
 
             return await query.AnyAsync();
+        }
+
+        protected async Task<(decimal shoppingCartTotal, decimal discountAmount)> GetDiscountTotalPriceAsync(int storeId)
+        {
+            var cart = await _shoppingCartService.GetShoppingCartAsync(await _workContext.GetCurrentCustomerAsync(), ShoppingCartType.ShoppingCart, storeId);
+            
+            //subtotal
+            var subTotalIncludingTax = await _workContext.GetTaxDisplayTypeAsync() == TaxDisplayType.IncludingTax && !_taxSettings.ForceTaxExclusionFromOrderSubtotal;
+            var (scTotal, dAmount, _, _, _, _) = await _orderTotalCalculationService.GetShoppingCartTotalAsync(cart, subTotalIncludingTax);
+
+            return (scTotal ?? 0, dAmount);
         }
 
         #endregion
